@@ -9,15 +9,18 @@ export default function StreakCard({
   variant = 'solo',
   isOverdue = false,
   onCheckIn,
+  onOpen,
 }) {
   return (
     <div
       className="streak-card"
+      onClick={onOpen}
       style={{
         background: `var(--${variant}-bg)`,
         border: `2px solid var(--${variant}-border)`,
         borderRadius: 16,
         padding: '0.9rem 1rem',
+        cursor: onOpen ? 'pointer' : 'default',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -52,7 +55,10 @@ export default function StreakCard({
 
       {isOverdue && (
         <button
-          onClick={onCheckIn}
+          onClick={(e) => {
+            e.stopPropagation()
+            onCheckIn?.()
+          }}
           style={{
             width: '100%',
             marginTop: 10,

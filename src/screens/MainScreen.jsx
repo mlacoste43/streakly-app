@@ -4,12 +4,12 @@ import StreakCard from '../components/StreakCard.jsx'
 // Placeholder data - will come from the backend once it exists.
 const habits = [
   { id: 1, icon: IconRun, title: 'Утренняя зарядка', subtitle: 'Соло', days: 12, variant: 'solo' },
-  { id: 2, icon: IconLanguage, title: 'Английский 15 мин', subtitle: 'Дуо с Аней', days: 34, variant: 'duo' },
+  { id: 2, icon: IconLanguage, title: 'Английский 15 мин', subtitle: 'Дуо с Аней', days: 34, variant: 'duo', partner: 'Аня' },
   { id: 3, icon: IconBook, title: 'Читать 20 страниц', subtitle: 'Соло · осталось 3 часа', days: 7, variant: 'danger', isOverdue: true },
   { id: 4, icon: IconUsers, title: 'Утренний забег', subtitle: 'Команда · 5 из 5 сегодня', days: 21, variant: 'team' },
 ]
 
-export default function MainScreen() {
+export default function MainScreen({ onOpenHabit }) {
   return (
     <div style={{ padding: 16, maxWidth: 480, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -46,6 +46,7 @@ export default function MainScreen() {
             variant={h.variant}
             isOverdue={h.isOverdue}
             onCheckIn={() => alert(`Отметил: ${h.title}`)}
+            onOpen={() => onOpenHabit?.(h)}
           />
         ))}
       </div>

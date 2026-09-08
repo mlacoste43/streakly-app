@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import MainScreen from './screens/MainScreen.jsx'
+import HabitDetailScreen from './screens/HabitDetailScreen.jsx'
 
 export default function App() {
-  // will grow into real navigation once more screens are wired up
-  const [screen] = useState('main')
+  // simple stack-less navigation: null = main screen, otherwise the selected habit
+  const [selectedHabit, setSelectedHabit] = useState(null)
 
-  if (screen === 'main') return <MainScreen />
+  if (selectedHabit) {
+    return <HabitDetailScreen habit={selectedHabit} onBack={() => setSelectedHabit(null)} />
+  }
 
-  return null
+  return <MainScreen onOpenHabit={setSelectedHabit} />
 }
