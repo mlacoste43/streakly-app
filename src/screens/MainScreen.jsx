@@ -9,7 +9,7 @@ const habits = [
   { id: 4, icon: IconUsers, title: 'Утренний забег', subtitle: 'Команда · 5 из 5 сегодня', days: 21, variant: 'team' },
 ]
 
-export default function MainScreen({ onOpenHabit }) {
+export default function MainScreen({ onOpenHabit, onCreateHabit }) {
   return (
     <div style={{ padding: 16, maxWidth: 480, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -52,6 +52,7 @@ export default function MainScreen({ onOpenHabit }) {
       </div>
 
       <button
+        onClick={onCreateHabit}
         style={{
           width: '100%',
           marginTop: 16,
