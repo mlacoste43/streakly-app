@@ -9,12 +9,17 @@ const habits = [
   { id: 4, icon: IconUsers, title: 'Утренний забег', subtitle: 'Команда · 5 из 5 сегодня', days: 21, variant: 'team' },
 ]
 
-export default function MainScreen({ onOpenHabit, onCreateHabit }) {
+export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenSettings }) {
   return (
     <div style={{ padding: 16, maxWidth: 480, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <p style={{ fontSize: 18, fontWeight: 500, margin: 0 }}>Streakly</p>
-        <IconSettings size={20} color="var(--text-secondary)" />
+        <IconSettings
+          size={20}
+          color="var(--text-secondary)"
+          onClick={onOpenSettings}
+          style={{ cursor: 'pointer' }}
+        />
       </div>
 
       <div
