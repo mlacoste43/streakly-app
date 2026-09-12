@@ -2,7 +2,7 @@ import { tg } from './telegram.js'
 
 // Set this in a .env file for local dev (VITE_API_URL=http://localhost:3000)
 // and in Vercel's project settings for production (your deployed server URL).
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+const API_URL = 'https://fitplan-0h1d.onrender.com'
 
 async function request(path, options = {}) {
   const initData = tg?.initData ?? ''
