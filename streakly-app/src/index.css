@@ -1,0 +1,39 @@
+:root {
+  --bg: #F7F8FA;
+  --surface: #FFFFFF;
+  --border: #E5E7EB;
+  --text: #1A1A1A;
+  --text-secondary: #6B7280;
+  --primary: #1D9E75;
+  --primary-text: #FFFFFF;
+
+  /* per-category palette, one pair per habit "type" color used across cards */
+  --solo-bg: #EAF3DE;    --solo-border: #639922; --solo-fg: #173404; --solo-icon: #3B6D11;
+  --duo-bg: #FAEEDA;     --duo-border: #EF9F27;  --duo-fg: #412402;  --duo-icon: #BA7517;
+  --team-bg: #FAECE7;    --team-border: #D85A30; --team-fg: #4A1B0C; --team-icon: #993C1D;
+  --danger-bg: #FCEBEB;  --danger-border: #E24B4A; --danger-fg: #501313; --danger-icon: #A32D2D;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.icon {
+  display: inline-block;
+  line-height: 1;
+}
