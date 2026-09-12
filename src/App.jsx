@@ -5,6 +5,7 @@ import CreateHabitScreen from './screens/CreateHabitScreen.jsx'
 import SettingsScreen from './screens/SettingsScreen.jsx'
 import TeamScreen from './screens/TeamScreen.jsx'
 import { getUser } from './telegram.js'
+import { api } from './api.js'
 
 export default function App() {
   // simple stack-less navigation: 'main' | 'detail' | 'team' | 'create' | 'settings'
@@ -28,10 +29,13 @@ export default function App() {
     return (
       <CreateHabitScreen
         onBack={() => setScreen('main')}
-        onCreate={(habit) => {
-          // wire this up to real storage once the backend exists
-          console.log('created habit', habit)
-          setScreen('main')
+        onCreate={async (habit) => {
+          try {
+            await api.createHabit(habit)
+            setScreen('main')
+          } catch (err) {
+            alert(err.message)
+          }
         }}
       />
     )

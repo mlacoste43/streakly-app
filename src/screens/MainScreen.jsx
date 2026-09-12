@@ -1,15 +1,40 @@
+import { useEffect, useState } from 'react'
 import { IconFlame, IconSettings, IconPlus, IconRun, IconLanguage, IconBook, IconUsers } from '@tabler/icons-react'
 import StreakCard from '../components/StreakCard.jsx'
+import { api } from '../api.js'
 
-// Placeholder data - will come from the backend once it exists.
-const habits = [
-  { id: 1, icon: IconRun, title: 'Утренняя зарядка', subtitle: 'Соло', days: 12, variant: 'solo' },
-  { id: 2, icon: IconLanguage, title: 'Английский 15 мин', subtitle: 'Дуо с Аней', days: 34, variant: 'duo', partner: 'Аня' },
-  { id: 3, icon: IconBook, title: 'Читать 20 страниц', subtitle: 'Соло · осталось 3 часа', days: 7, variant: 'danger', isOverdue: true },
-  { id: 4, icon: IconUsers, title: 'Утренний забег', subtitle: 'Команда · 5 из 5 сегодня', days: 21, variant: 'team' },
-]
+// Backend sends the icon as a string (see server/src/data/store.js) - map it to a real icon here.
+const ICONS = { run: IconRun, language: IconLanguage, book: IconBook, users: IconUsers }
+
+function subtitleFor(habit) {
+  if (habit.type === 'duo') return `Дуо с ${habit.partner ?? '...'}`
+  if (habit.type === 'team') return 'Команда'
+  if (habit.deadlineHours) return `Соло · осталось ${habit.deadlineHours} ч`
+  return 'Соло'
+}
 
 export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenSettings }) {
+  const [habits, setHabits] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    api
+      .getHabits()
+      .then((data) => setHabits(data.habits))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handleCheckIn(habit) {
+    try {
+      const { habit: updated } = await api.checkIn(habit.id)
+      setHabits((prev) => prev.map((h) => (h.id === updated.id ? updated : h)))
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
   return (
     <div style={{ padding: 16, maxWidth: 480, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -32,25 +57,30 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenSettings 
         }}
       >
         <IconFlame size={40} color="#FAEEDA" />
-        <p style={{ fontSize: 40, fontWeight: 500, margin: '4px 0 0', color: '#FAEEDA', lineHeight: 1 }}>12</p>
-        <p style={{ fontSize: 13, color: '#F3D9AD', margin: '4px 0 0' }}>дней подряд без пропуска</p>
+        <p style={{ fontSize: 40, fontWeight: 500, margin: '4px 0 0', color: '#FAEEDA', lineHeight: 1 }}>
+          {habits.reduce((sum, h) => sum + h.days, 0)}
+        </p>
+        <p style={{ fontSize: 13, color: '#F3D9AD', margin: '4px 0 0' }}>суммарных дней огня</p>
       </div>
 
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 8px', fontWeight: 500 }}>
         Твои привычки
       </p>
 
+      {loading && <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Загрузка…</p>}
+      {error && <p style={{ fontSize: 13, color: 'var(--danger-icon)' }}>Не удалось загрузить: {error}</p>}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {habits.map((h) => (
           <StreakCard
             key={h.id}
-            icon={h.icon}
+            icon={ICONS[h.icon] ?? IconFlame}
             title={h.title}
-            subtitle={h.subtitle}
+            subtitle={subtitleFor(h)}
             days={h.days}
             variant={h.variant}
-            isOverdue={h.isOverdue}
-            onCheckIn={() => alert(`Отметил: ${h.title}`)}
+            isOverdue={Boolean(h.deadlineHours)}
+            onCheckIn={() => handleCheckIn(h)}
             onOpen={() => onOpenHabit?.(h)}
           />
         ))}
