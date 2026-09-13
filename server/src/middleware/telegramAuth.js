@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { ensureUser } from '../data/store.js'
 
 // Validates the `initData` string Telegram gives the Mini App on launch.
 // Docs: https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
@@ -43,21 +44,29 @@ export function verifyInitData(initData, botToken) {
 // This lets you develop against the API from a plain browser, without
 // opening the app through Telegram every time.
 export function telegramAuth(botToken, { allowDevBypass = false } = {}) {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const header = req.headers.authorization ?? ''
     const initData = header.startsWith('tma ') ? header.slice(4) : null
 
+    let user
     if (allowDevBypass && !initData) {
-      req.telegramUser = { id: 1, first_name: 'Dev', username: 'dev_user' }
-      return next()
+      user = { id: 1, first_name: 'Dev', username: 'dev_user' }
+    } else {
+      const result = verifyInitData(initData, botToken)
+      if (!result) {
+        return res.status(401).json({ error: 'Invalid or missing Telegram auth' })
+      }
+      user = result.user
     }
 
-    const result = verifyInitData(initData, botToken)
-    if (!result) {
-      return res.status(401).json({ error: 'Invalid or missing Telegram auth' })
+    try {
+      await ensureUser(user)
+    } catch (err) {
+      console.error('Failed to upsert user', err)
+      return res.status(500).json({ error: 'Database error' })
     }
 
-    req.telegramUser = result.user
+    req.telegramUser = user
     next()
   }
 }

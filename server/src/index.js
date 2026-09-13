@@ -22,9 +22,18 @@ app.use('/api', telegramAuth(BOT_TOKEN, { allowDevBypass: process.env.ALLOW_DEV_
 app.get('/api/me', (req, res) => res.json({ user: req.telegramUser }))
 app.use('/api/habits', habitsRouter)
 
+// catches any error passed to next(err) from the routes above
+app.use((err, req, res, next) => {
+  console.error(err)
+  res.status(500).json({ error: 'Internal server error' })
+})
+
 app.listen(PORT, () => {
   console.log(`Streakly API listening on http://localhost:${PORT}`)
   if (!BOT_TOKEN) {
     console.warn('WARNING: TELEGRAM_BOT_TOKEN is not set - all /api requests will be rejected. Copy .env.example to .env and fill it in.')
+  }
+  if (!process.env.DATABASE_URL) {
+    console.warn('WARNING: DATABASE_URL is not set - database queries will fail.')
   }
 })
