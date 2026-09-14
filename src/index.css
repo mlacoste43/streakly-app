@@ -14,6 +14,26 @@
   --danger-bg: #FCEBEB;  --danger-border: #E24B4A; --danger-fg: #501313; --danger-icon: #A32D2D;
 }
 
+/* applied to <html data-theme="dark"> by SettingsContext */
+[data-theme='dark'] {
+  --bg: #121417;
+  --surface: #1C1F23;
+  --border: #2E3238;
+  --text: #F2F2F2;
+  --text-secondary: #9AA0A8;
+  --primary: #2BC08D;
+  --primary-text: #0B0B0B;
+
+  --solo-bg: #1E2A14;    --solo-border: #639922; --solo-fg: #D7ECB6; --solo-icon: #8FCB4C;
+  --duo-bg: #2B2110;     --duo-border: #EF9F27;  --duo-fg: #F6DCA8;  --duo-icon: #F0B44F;
+  --team-bg: #2A1D16;    --team-border: #D85A30; --team-fg: #F3C7AE; --team-icon: #E17B4F;
+  --danger-bg: #2B1414;  --danger-border: #E24B4A; --danger-fg: #F5C2C1; --danger-icon: #EB6E6D;
+}
+
+body {
+  transition: background 0.15s, color 0.15s;
+}
+
 * { box-sizing: border-box; }
 
 html, body, #root {

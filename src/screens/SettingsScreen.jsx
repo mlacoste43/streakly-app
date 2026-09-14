@@ -1,13 +1,18 @@
-import { useState } from 'react'
 import {
   IconArrowLeft, IconChevronRight, IconLanguage, IconMoon, IconBell, IconClock,
   IconUsers, IconWorld, IconSnowflake, IconLock, IconMessageCircle, IconInfoCircle,
 } from '@tabler/icons-react'
+import { useSettings } from '../context/SettingsContext.jsx'
 
 export default function SettingsScreen({ onBack, user }) {
-  const [darkTheme, setDarkTheme] = useState(false)
-  const [deadlineReminder, setDeadlineReminder] = useState(true)
-  const [partnerAlert, setPartnerAlert] = useState(true)
+  const {
+    theme, toggleTheme,
+    language, toggleLanguage,
+    deadlineReminder, setDeadlineReminder,
+    partnerAlert, setPartnerAlert,
+    reminderLeadHours,
+    t,
+  } = useSettings()
 
   return (
     <div style={{ padding: 16, maxWidth: 480, margin: '0 auto' }}>
@@ -15,7 +20,7 @@ export default function SettingsScreen({ onBack, user }) {
         <button onClick={onBack} style={{ background: 'none', border: 'none', padding: 0, display: 'flex' }}>
           <IconArrowLeft size={20} color="var(--text-secondary)" />
         </button>
-        <p style={{ fontSize: 16, fontWeight: 500, margin: 0 }}>Настройки</p>
+        <p style={{ fontSize: 16, fontWeight: 500, margin: 0 }}>{t('settings')}</p>
       </div>
 
       <div
@@ -42,40 +47,46 @@ export default function SettingsScreen({ onBack, user }) {
         <IconChevronRight size={16} color="var(--text-secondary)" />
       </div>
 
-      <SectionLabel>Вид</SectionLabel>
+      <SectionLabel>{t('view')}</SectionLabel>
       <Group>
-        <Row icon={IconLanguage} label="Язык" value="Русский" chevron />
+        <Row
+          icon={IconLanguage}
+          label={t('language')}
+          value={language === 'ru' ? 'Русский' : 'English'}
+          onClick={toggleLanguage}
+          chevron
+        />
         <Row
           icon={IconMoon}
-          label="Тёмная тема"
+          label={t('darkTheme')}
           last
           toggle
-          checked={darkTheme}
-          onToggle={() => setDarkTheme((v) => !v)}
+          checked={theme === 'dark'}
+          onToggle={toggleTheme}
         />
       </Group>
 
-      <SectionLabel>Уведомления</SectionLabel>
+      <SectionLabel>{t('notifications')}</SectionLabel>
       <Group>
         <Row
           icon={IconBell}
-          label="Напоминания о дедлайне"
+          label={t('deadlineReminder')}
           toggle
           checked={deadlineReminder}
-          onToggle={() => setDeadlineReminder((v) => !v)}
+          onToggle={() => setDeadlineReminder(!deadlineReminder)}
         />
-        <Row icon={IconClock} label="За сколько напоминать" value="3 часа" chevron />
+        <Row icon={IconClock} label={t('reminderLeadTime')} value={`${reminderLeadHours} ч`} chevron />
         <Row
           icon={IconUsers}
-          label="Партнёр/команда не отметились"
+          label={t('partnerAlert')}
           toggle
           checked={partnerAlert}
-          onToggle={() => setPartnerAlert((v) => !v)}
+          onToggle={() => setPartnerAlert(!partnerAlert)}
         />
-        <Row icon={IconWorld} label="Часовой пояс" value="Europe/Moscow" chevron last />
+        <Row icon={IconWorld} label={t('timezone')} value="Europe/Moscow" chevron last />
       </Group>
 
-      <SectionLabel>Стрики</SectionLabel>
+      <SectionLabel>{t('streaks')}</SectionLabel>
       <div
         style={{
           background: 'var(--duo-bg)', border: '2px solid var(--duo-border)', borderRadius: 16,
@@ -84,17 +95,17 @@ export default function SettingsScreen({ onBack, user }) {
       >
         <div style={{ padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: 10 }}>
           <IconSnowflake size={18} color="var(--duo-icon)" />
-          <p style={{ fontSize: 14, margin: 0, flex: 1, color: 'var(--duo-fg)' }}>Заморозки стрика</p>
-          <span style={{ fontSize: 13, color: 'var(--duo-icon)', fontWeight: 500 }}>2 доступно</span>
+          <p style={{ fontSize: 14, margin: 0, flex: 1, color: 'var(--duo-fg)' }}>{t('streakFreezes')}</p>
+          <span style={{ fontSize: 13, color: 'var(--duo-icon)', fontWeight: 500 }}>2 {t('available')}</span>
           <IconChevronRight size={16} color="var(--duo-icon)" />
         </div>
       </div>
 
-      <SectionLabel>Приватность и поддержка</SectionLabel>
+      <SectionLabel>{t('privacySupport')}</SectionLabel>
       <Group>
-        <Row icon={IconLock} label="Кто видит мои стрики" value="Только участники" chevron />
-        <Row icon={IconMessageCircle} label="Обратная связь" chevron />
-        <Row icon={IconInfoCircle} label="О приложении" value="v1.0.0" last />
+        <Row icon={IconLock} label={t('whoSeesStreaks')} value={t('onlyMembers')} chevron />
+        <Row icon={IconMessageCircle} label={t('feedback')} chevron />
+        <Row icon={IconInfoCircle} label={t('about')} value="v1.0.0" last />
       </Group>
 
       <button
@@ -103,7 +114,7 @@ export default function SettingsScreen({ onBack, user }) {
           border: '2px solid var(--danger-border)', borderRadius: 16, fontWeight: 500, padding: 12,
         }}
       >
-        Удалить аккаунт
+        {t('deleteAccount')}
       </button>
     </div>
   )
@@ -125,17 +136,17 @@ function Group({ children }) {
   )
 }
 
-function Row({ icon: Icon, label, value, chevron, toggle, checked, onToggle, last }) {
+function Row({ icon: Icon, label, value, chevron, toggle, checked, onToggle, onClick, last }) {
   return (
     <div
-      onClick={toggle ? onToggle : undefined}
+      onClick={toggle ? onToggle : onClick}
       style={{
         padding: '0.85rem 1rem',
         display: 'flex',
         alignItems: 'center',
         gap: 10,
         borderBottom: last ? 'none' : '1px solid var(--border)',
-        cursor: toggle ? 'pointer' : 'default',
+        cursor: toggle || onClick ? 'pointer' : 'default',
       }}
     >
       <Icon size={18} color="var(--text-secondary)" />

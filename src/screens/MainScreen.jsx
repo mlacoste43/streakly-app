@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { IconFlame, IconSettings, IconPlus, IconRun, IconLanguage, IconBook, IconUsers } from '@tabler/icons-react'
 import StreakCard from '../components/StreakCard.jsx'
 import { api } from '../api.js'
+import { useSettings } from '../context/SettingsContext.jsx'
 
 // Backend sends the icon as a string (see server/src/data/store.js) - map it to a real icon here.
 const ICONS = { run: IconRun, language: IconLanguage, book: IconBook, users: IconUsers }
@@ -14,6 +15,7 @@ function subtitleFor(habit) {
 }
 
 export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenSettings }) {
+  const { t } = useSettings()
   const [habits, setHabits] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -38,7 +40,7 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenSettings 
   return (
     <div style={{ padding: 16, maxWidth: 480, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <p style={{ fontSize: 18, fontWeight: 500, margin: 0 }}>Streakly</p>
+        <p style={{ fontSize: 18, fontWeight: 500, margin: 0 }}>{t('appName')}</p>
         <IconSettings
           size={20}
           color="var(--text-secondary)"
@@ -64,7 +66,7 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenSettings 
       </div>
 
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 8px', fontWeight: 500 }}>
-        Твои привычки
+        {t('yourHabits')}
       </p>
 
       {loading && <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Загрузка…</p>}
@@ -104,7 +106,7 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenSettings 
         }}
       >
         <IconPlus size={18} />
-        Новая привычка
+        {t('newHabit')}
       </button>
     </div>
   )
