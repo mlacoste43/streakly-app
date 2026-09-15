@@ -69,6 +69,13 @@ export async function checkIn(habitId, userId) {
 }
 
 export async function getTeamMembers(habitId) {
+  return getHabitMembers(habitId)
+}
+
+// Works for any habit type (solo/duo/team) - who's on it and whether
+// they've checked in today. Used for the team screen and the duo
+// partner-status block on the habit-detail screen.
+export async function getHabitMembers(habitId) {
   const { rows } = await pool.query(
     `SELECT u.id, u.first_name AS name,
             (ci.user_id IS NOT NULL) AS done,
@@ -81,6 +88,21 @@ export async function getTeamMembers(habitId) {
     [habitId]
   )
   return rows
+}
+
+// All check-in dates for a habit within a given month (any member's
+// check-in counts as "done" for that day - matches the "one miss breaks
+// it for everyone" model). Returns an array of 'YYYY-MM-DD' strings.
+export async function getCheckInsForMonth(habitId, year, month) {
+  const { rows } = await pool.query(
+    `SELECT DISTINCT checkin_date
+     FROM check_ins
+     WHERE habit_id = $1
+       AND date_trunc('month', checkin_date) = date_trunc('month', make_date($2, $3, 1))
+     ORDER BY checkin_date`,
+    [habitId, year, month]
+  )
+  return rows.map((r) => r.checkin_date.toISOString().slice(0, 10))
 }
 
 function toHabitJson(row) {
