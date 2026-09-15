@@ -1,21 +1,87 @@
+import { useEffect, useState } from 'react'
 import { IconArrowLeft, IconFlame, IconCheck, IconClock } from '@tabler/icons-react'
+import { api } from '../api.js'
 
-// Placeholder calendar data for the month - true/false/null (null = future day)
-const days = [
-  true, true, true, true, true, false, null,
-  true, true, true, true, true, null, null,
-  true, true, null, null, null, null, null,
-]
 const weekLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
-export default function HabitDetailScreen({ habit, onBack }) {
+// Builds a Mon-first calendar grid for the given month, marking each day
+// as done / missed / future based on real check-in dates from the API.
+function buildMonthGrid(year, month, checkedDates) {
+  const checkedSet = new Set(checkedDates)
+  const firstOfMonth = new Date(year, month - 1, 1)
+  const daysInMonth = new Date(year, month, 0).getDate()
+  // JS getDay(): 0=Sun..6=Sat -> convert to Mon-first (0=Mon..6=Sun)
+  const leadingBlanks = (firstOfMonth.getDay() + 6) % 7
+
+  const todayStr = new Date().toISOString().slice(0, 10)
+
+  const cells = []
+  for (let i = 0; i < leadingBlanks; i++) cells.push(null)
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    let status
+    if (dateStr > todayStr) status = 'future'
+    else if (checkedSet.has(dateStr)) status = 'done'
+    else status = 'missed'
+    cells.push({ day, status })
+  }
+
+  return cells
+}
+
+export default function HabitDetailScreen({ habit, onBack, onUpdated }) {
+  const [checkedDates, setCheckedDates] = useState([])
+  const [members, setMembers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [checkingIn, setCheckingIn] = useState(false)
+
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth() + 1
+  const monthKey = `${year}-${month}`
+  const grid = buildMonthGrid(year, month, checkedDates)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    Promise.all([
+      api.getCheckIns(habit.id, monthKey),
+      habit.type === 'duo' ? api.getMembers(habit.id) : Promise.resolve({ members: [] }),
+    ])
+      .then(([checkinsRes, membersRes]) => {
+        if (cancelled) return
+        setCheckedDates(checkinsRes.dates)
+        setMembers(membersRes.members)
+      })
+      .catch(() => {})
+      .finally(() => !cancelled && setLoading(false))
+    return () => {
+      cancelled = true
+    }
+  }, [habit.id])
+
+  async function handleCheckIn() {
+    setCheckingIn(true)
+    try {
+      const { habit: updated } = await api.checkIn(habit.id)
+      const todayStr = new Date().toISOString().slice(0, 10)
+      setCheckedDates((prev) => (prev.includes(todayStr) ? prev : [...prev, todayStr]))
+      onUpdated?.(updated)
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setCheckingIn(false)
+    }
+  }
+
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const alreadyDoneToday = checkedDates.includes(todayStr)
+
   return (
     <div style={{ padding: 16, maxWidth: 480, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-        <button
-          onClick={onBack}
-          style={{ background: 'none', border: 'none', padding: 0, display: 'flex' }}
-        >
+        <button onClick={onBack} style={{ background: 'none', border: 'none', padding: 0, display: 'flex' }}>
           <IconArrowLeft size={20} color="var(--text-secondary)" />
         </button>
         <p style={{ fontSize: 16, fontWeight: 500, margin: 0 }}>{habit.title}</p>
@@ -50,11 +116,11 @@ export default function HabitDetailScreen({ habit, onBack }) {
           </div>
         </div>
         <p style={{ fontSize: 13, color: '#F3D9AD', margin: 0 }}>
-          дней подряд · рекорд {habit.record ?? habit.days + 7}
+          дней подряд · рекорд {habit.record}
         </p>
       </div>
 
-      {habit.partner && (
+      {habit.type === 'duo' && members.length > 0 && (
         <div
           style={{
             background: 'var(--surface)',
@@ -68,8 +134,9 @@ export default function HabitDetailScreen({ habit, onBack }) {
             С кем держишь стрик
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <PersonStatus label="Ты" color="var(--team-icon)" done />
-            <PersonStatus label={habit.partner} color="var(--duo-icon)" done={false} />
+            {members.map((m) => (
+              <PersonStatus key={m.id} label={m.name} done={m.done} />
+            ))}
           </div>
         </div>
       )}
@@ -78,47 +145,57 @@ export default function HabitDetailScreen({ habit, onBack }) {
         Этот месяц
       </p>
       <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 16, marginBottom: 16 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, textAlign: 'center' }}>
-          {weekLabels.map((d) => (
-            <span key={d} style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{d}</span>
-          ))}
-          {days.map((done, i) => (
-            <div
-              key={i}
-              style={{
-                aspectRatio: '1',
-                borderRadius: 8,
-                background: done === true ? 'var(--duo-border)' : done === false ? 'var(--danger-bg)' : 'transparent',
-                border: done === false ? '2px solid var(--danger-border)' : done === null ? '2px dashed var(--border)' : 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {done === true && <IconFlame size={12} color="var(--duo-fg)" />}
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>Загрузка…</p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, textAlign: 'center' }}>
+            {weekLabels.map((d) => (
+              <span key={d} style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{d}</span>
+            ))}
+            {grid.map((cell, i) => {
+              if (!cell) return <div key={i} />
+              const { status } = cell
+              return (
+                <div
+                  key={i}
+                  style={{
+                    aspectRatio: '1',
+                    borderRadius: 8,
+                    background: status === 'done' ? 'var(--duo-border)' : status === 'missed' ? 'var(--danger-bg)' : 'transparent',
+                    border: status === 'missed' ? '2px solid var(--danger-border)' : status === 'future' ? '2px dashed var(--border)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {status === 'done' && <IconFlame size={12} color="var(--duo-fg)" />}
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <button
+        onClick={handleCheckIn}
+        disabled={checkingIn || alreadyDoneToday}
         style={{
           width: '100%',
-          background: 'var(--primary)',
-          color: 'var(--primary-text)',
+          background: alreadyDoneToday ? 'var(--border)' : 'var(--primary)',
+          color: alreadyDoneToday ? 'var(--text-secondary)' : 'var(--primary-text)',
           border: 'none',
           borderRadius: 16,
           fontWeight: 500,
           padding: 12,
         }}
       >
-        Отметить сегодня
+        {alreadyDoneToday ? 'Сегодня уже отмечено' : checkingIn ? 'Отмечаем…' : 'Отметить сегодня'}
       </button>
     </div>
   )
 }
 
-function PersonStatus({ label, color, done }) {
+function PersonStatus({ label, done }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
       <div
@@ -126,7 +203,7 @@ function PersonStatus({ label, color, done }) {
           width: 30,
           height: 30,
           borderRadius: '50%',
-          background: color,
+          background: 'var(--team-icon)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

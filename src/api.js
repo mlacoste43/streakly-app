@@ -30,4 +30,6 @@ export const api = {
   createHabit: (data) => request('/api/habits', { method: 'POST', body: JSON.stringify(data) }),
   checkIn: (id) => request(`/api/habits/${id}/checkin`, { method: 'POST' }),
   getTeam: (id) => request(`/api/habits/${id}/team`),
+  getMembers: (id) => request(`/api/habits/${id}/members`),
+  getCheckIns: (id, month) => request(`/api/habits/${id}/checkins${month ? `?month=${month}` : ''}`),
 }

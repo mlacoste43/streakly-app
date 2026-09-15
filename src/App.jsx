@@ -18,7 +18,13 @@ export default function App() {
   }
 
   if (screen === 'detail' && selectedHabit) {
-    return <HabitDetailScreen habit={selectedHabit} onBack={() => setScreen('main')} />
+    return (
+      <HabitDetailScreen
+        habit={selectedHabit}
+        onBack={() => setScreen('main')}
+        onUpdated={(updated) => setSelectedHabit((prev) => ({ ...prev, ...updated }))}
+      />
+    )
   }
 
   if (screen === 'team' && selectedHabit) {
