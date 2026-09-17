@@ -105,6 +105,31 @@ export async function getCheckInsForMonth(habitId, year, month) {
   return rows.map((r) => r.checkin_date.toISOString().slice(0, 10))
 }
 
+// The core "don't break the streak" mechanic: any habit where NOBODY
+// checked in yesterday loses its streak - unless someone already checked
+// in today, which means the streak was already (re)started and shouldn't
+// be clobbered by a reset job that happens to run again the same day.
+// Safe to run more than once a day.
+export async function resetMissedStreaks() {
+  const { rows } = await pool.query(
+    `UPDATE habits h
+     SET days = 0
+     WHERE h.days > 0
+       AND NOT EXISTS (
+         SELECT 1 FROM check_ins ci
+         WHERE ci.habit_id = h.id
+           AND ci.checkin_date = CURRENT_DATE - INTERVAL '1 day'
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM check_ins ci
+         WHERE ci.habit_id = h.id
+           AND ci.checkin_date = CURRENT_DATE
+       )
+     RETURNING h.id, h.title`
+  )
+  return rows
+}
+
 function toHabitJson(row) {
   return {
     id: row.id,
