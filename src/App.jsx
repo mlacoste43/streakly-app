@@ -8,7 +8,7 @@ import { getUser } from './telegram.js'
 import { api } from './api.js'
 
 export default function App() {
-  // simple stack-less navigation: 'main' | 'detail' | 'team' | 'create' | 'settings'
+  // simple stack-less navigation: 'main' | 'detail' | 'team' | 'create' | 'edit' | 'settings'
   const [screen, setScreen] = useState('main')
   const [selectedHabit, setSelectedHabit] = useState(null)
 
@@ -23,12 +23,25 @@ export default function App() {
         habit={selectedHabit}
         onBack={() => setScreen('main')}
         onUpdated={(updated) => setSelectedHabit((prev) => ({ ...prev, ...updated }))}
+        onEdit={(habit) => {
+          setSelectedHabit(habit)
+          setScreen('edit')
+        }}
       />
     )
   }
 
   if (screen === 'team' && selectedHabit) {
-    return <TeamScreen habit={selectedHabit} onBack={() => setScreen('main')} />
+    return (
+      <TeamScreen
+        habit={selectedHabit}
+        onBack={() => setScreen('main')}
+        onEdit={(habit) => {
+          setSelectedHabit(habit)
+          setScreen('edit')
+        }}
+      />
+    )
   }
 
   if (screen === 'create') {
@@ -38,6 +51,32 @@ export default function App() {
         onCreate={async (habit) => {
           try {
             await api.createHabit(habit)
+            setScreen('main')
+          } catch (err) {
+            alert(err.message)
+          }
+        }}
+      />
+    )
+  }
+
+  if (screen === 'edit' && selectedHabit) {
+    return (
+      <CreateHabitScreen
+        editingHabit={selectedHabit}
+        onBack={() => setScreen('main')}
+        onSave={async (id, data) => {
+          try {
+            await api.updateHabit(id, data)
+            setScreen('main')
+          } catch (err) {
+            alert(err.message)
+          }
+        }}
+        onDelete={async (id) => {
+          try {
+            await api.deleteHabit(id)
+            setSelectedHabit(null)
             setScreen('main')
           } catch (err) {
             alert(err.message)

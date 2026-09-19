@@ -1,5 +1,8 @@
 import { Router } from 'express'
-import { listHabitsForUser, addHabit, findHabit, checkIn, getTeamMembers, getHabitMembers, getCheckInsForMonth } from '../data/store.js'
+import {
+  listHabitsForUser, addHabit, findHabit, checkIn, getTeamMembers, getHabitMembers,
+  getCheckInsForMonth, updateHabit, deleteHabit,
+} from '../data/store.js'
 
 export const habitsRouter = Router()
 
@@ -76,6 +79,40 @@ habitsRouter.get('/:id/checkins', async (req, res, next) => {
 
     const dates = await getCheckInsForMonth(habit.id, year, month)
     res.json({ dates })
+  } catch (err) {
+    next(err)
+  }
+})
+
+habitsRouter.patch('/:id', async (req, res, next) => {
+  try {
+    const existing = await findHabit(req.params.id)
+    if (!existing) return res.status(404).json({ error: 'not found' })
+    if (String(existing.ownerId) !== String(req.telegramUser.id)) {
+      return res.status(403).json({ error: 'only the owner can edit this habit' })
+    }
+    const { name, type, frequency, breakRule } = req.body ?? {}
+    const habit = await updateHabit(req.params.id, {
+      name: name?.trim(),
+      type,
+      frequency,
+      breakRule,
+    })
+    res.json({ habit })
+  } catch (err) {
+    next(err)
+  }
+})
+
+habitsRouter.delete('/:id', async (req, res, next) => {
+  try {
+    const existing = await findHabit(req.params.id)
+    if (!existing) return res.status(404).json({ error: 'not found' })
+    if (String(existing.ownerId) !== String(req.telegramUser.id)) {
+      return res.status(403).json({ error: 'only the owner can delete this habit' })
+    }
+    await deleteHabit(req.params.id)
+    res.status(204).end()
   } catch (err) {
     next(err)
   }

@@ -1,4 +1,4 @@
-import { IconArrowLeft, IconFlame, IconAlertTriangle, IconCheck, IconClock } from '@tabler/icons-react'
+import { IconArrowLeft, IconFlame, IconAlertTriangle, IconCheck, IconClock, IconPencil } from '@tabler/icons-react'
 
 // Placeholder data - will come from the backend once it exists.
 const members = [
@@ -15,7 +15,7 @@ const leaderboard = [
   { id: 5, name: 'Лена', color: '#F5B896', days: 19 },
 ]
 
-export default function TeamScreen({ habit, onBack }) {
+export default function TeamScreen({ habit, onBack, onEdit }) {
   const doneCount = members.filter((m) => m.done).length
   const laggards = members.filter((m) => !m.done)
 
@@ -25,7 +25,12 @@ export default function TeamScreen({ habit, onBack }) {
         <button onClick={onBack} style={{ background: 'none', border: 'none', padding: 0, display: 'flex' }}>
           <IconArrowLeft size={20} color="var(--text-secondary)" />
         </button>
-        <p style={{ fontSize: 16, fontWeight: 500, margin: 0 }}>{habit?.title ?? 'Утренний забег'}</p>
+        <p style={{ fontSize: 16, fontWeight: 500, margin: 0, flex: 1 }}>{habit?.title ?? 'Утренний забег'}</p>
+        {onEdit && (
+          <button onClick={() => onEdit(habit)} style={{ background: 'none', border: 'none', padding: 0, display: 'flex' }}>
+            <IconPencil size={18} color="var(--text-secondary)" />
+          </button>
+        )}
       </div>
 
       <div style={{ background: 'var(--team-icon)', borderRadius: 20, padding: '1.25rem 1rem', marginBottom: 16, textAlign: 'center' }}>

@@ -21,6 +21,7 @@ async function request(path, options = {}) {
     throw new Error(body.error ?? `Request failed: ${res.status}`)
   }
 
+  if (res.status === 204) return null
   return res.json()
 }
 
@@ -28,6 +29,8 @@ export const api = {
   getMe: () => request('/api/me'),
   getHabits: () => request('/api/habits'),
   createHabit: (data) => request('/api/habits', { method: 'POST', body: JSON.stringify(data) }),
+  updateHabit: (id, data) => request(`/api/habits/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteHabit: (id) => request(`/api/habits/${id}`, { method: 'DELETE' }),
   checkIn: (id) => request(`/api/habits/${id}/checkin`, { method: 'POST' }),
   getTeam: (id) => request(`/api/habits/${id}/team`),
   getMembers: (id) => request(`/api/habits/${id}/members`),

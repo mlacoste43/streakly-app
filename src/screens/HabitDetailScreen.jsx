@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { IconArrowLeft, IconFlame, IconCheck, IconClock } from '@tabler/icons-react'
+import { IconArrowLeft, IconFlame, IconCheck, IconClock, IconPencil } from '@tabler/icons-react'
 import { api } from '../api.js'
 
 const weekLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
@@ -30,7 +30,7 @@ function buildMonthGrid(year, month, checkedDates) {
   return cells
 }
 
-export default function HabitDetailScreen({ habit, onBack, onUpdated }) {
+export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) {
   const [checkedDates, setCheckedDates] = useState([])
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -84,7 +84,12 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated }) {
         <button onClick={onBack} style={{ background: 'none', border: 'none', padding: 0, display: 'flex' }}>
           <IconArrowLeft size={20} color="var(--text-secondary)" />
         </button>
-        <p style={{ fontSize: 16, fontWeight: 500, margin: 0 }}>{habit.title}</p>
+        <p style={{ fontSize: 16, fontWeight: 500, margin: 0, flex: 1 }}>{habit.title}</p>
+        {onEdit && (
+          <button onClick={() => onEdit(habit)} style={{ background: 'none', border: 'none', padding: 0, display: 'flex' }}>
+            <IconPencil size={18} color="var(--text-secondary)" />
+          </button>
+        )}
       </div>
 
       <div

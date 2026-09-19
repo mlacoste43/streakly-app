@@ -16,14 +16,24 @@ const FREQUENCIES = [
   { id: 'weekly', label: 'N раз/нед' },
 ]
 
-export default function CreateHabitScreen({ onBack, onCreate }) {
-  const [name, setName] = useState('')
-  const [type, setType] = useState('solo')
-  const [frequency, setFrequency] = useState('daily')
-  const [breakRule, setBreakRule] = useState('all')
+export default function CreateHabitScreen({ onBack, onCreate, onSave, onDelete, editingHabit }) {
+  const isEditing = Boolean(editingHabit)
+  const [name, setName] = useState(editingHabit?.title ?? '')
+  const [type, setType] = useState(editingHabit?.type ?? 'solo')
+  const [frequency, setFrequency] = useState(editingHabit?.frequency ?? 'daily')
+  const [breakRule, setBreakRule] = useState(editingHabit?.breakRule ?? 'all')
+  const [deleting, setDeleting] = useState(false)
 
   function handleSubmit() {
-    onCreate?.({ name, type, frequency, breakRule })
+    const data = { name, type, frequency, breakRule }
+    if (isEditing) onSave?.(editingHabit.id, data)
+    else onCreate?.(data)
+  }
+
+  function handleDelete() {
+    if (!confirm(`Удалить привычку «${editingHabit.title}»? Это необратимо.`)) return
+    setDeleting(true)
+    onDelete?.(editingHabit.id)
   }
 
   return (
@@ -32,7 +42,9 @@ export default function CreateHabitScreen({ onBack, onCreate }) {
         <button onClick={onBack} style={{ background: 'none', border: 'none', padding: 0, display: 'flex' }}>
           <IconX size={20} color="var(--text-secondary)" />
         </button>
-        <p style={{ fontSize: 16, fontWeight: 500, margin: 0 }}>Новая привычка</p>
+        <p style={{ fontSize: 16, fontWeight: 500, margin: 0 }}>
+          {isEditing ? 'Редактировать привычку' : 'Новая привычка'}
+        </p>
         <span style={{ width: 20 }} />
       </div>
 
@@ -170,8 +182,27 @@ export default function CreateHabitScreen({ onBack, onCreate }) {
           padding: 12,
         }}
       >
-        Создать привычку
+        {isEditing ? 'Сохранить изменения' : 'Создать привычку'}
       </button>
+
+      {isEditing && (
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          style={{
+            width: '100%',
+            marginTop: 10,
+            background: 'transparent',
+            color: 'var(--danger-icon)',
+            border: '2px solid var(--danger-border)',
+            borderRadius: 16,
+            fontWeight: 500,
+            padding: 12,
+          }}
+        >
+          {deleting ? 'Удаляем…' : 'Удалить привычку'}
+        </button>
+      )}
     </div>
   )
 }

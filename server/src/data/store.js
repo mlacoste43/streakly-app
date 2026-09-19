@@ -130,6 +130,25 @@ export async function resetMissedStreaks() {
   return rows
 }
 
+export async function updateHabit(id, { name, type, frequency, breakRule }) {
+  const { rows } = await pool.query(
+    `UPDATE habits
+     SET title = COALESCE($2, title),
+         type = COALESCE($3, type),
+         frequency = COALESCE($4, frequency),
+         break_rule = COALESCE($5, break_rule)
+     WHERE id = $1
+     RETURNING *`,
+    [id, name, type, frequency, breakRule]
+  )
+  return rows[0] ? toHabitJson(rows[0]) : null
+}
+
+export async function deleteHabit(id) {
+  const { rowCount } = await pool.query('DELETE FROM habits WHERE id = $1', [id])
+  return rowCount > 0
+}
+
 function toHabitJson(row) {
   return {
     id: row.id,
