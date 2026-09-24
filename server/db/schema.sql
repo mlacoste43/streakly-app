@@ -41,4 +41,3 @@ CREATE TABLE IF NOT EXISTS check_ins (
 
 CREATE INDEX IF NOT EXISTS idx_habit_members_user ON habit_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_check_ins_habit_date ON check_ins(habit_id, checkin_date);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS timezone TEXT NOT NULL DEFAULT 'UTC';
