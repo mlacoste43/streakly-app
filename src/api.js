@@ -6,12 +6,14 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
 async function request(path, options = {}) {
   const initData = tg?.initData ?? ''
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `tma ${initData}`,
+      'X-Timezone': timezone,
       ...options.headers,
     },
   })

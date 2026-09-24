@@ -4,14 +4,22 @@ import { pool } from '../db.js'
 
 // Called on every authenticated request so the Telegram user always
 // exists in our `users` table before anything references it.
-export async function ensureUser(telegramUser) {
+export async function ensureUser(telegramUser, timezone) {
   if (!telegramUser?.id) return
   await pool.query(
-    `INSERT INTO users (id, first_name, username)
-     VALUES ($1, $2, $3)
-     ON CONFLICT (id) DO UPDATE SET first_name = EXCLUDED.first_name, username = EXCLUDED.username`,
-    [telegramUser.id, telegramUser.first_name ?? 'Без имени', telegramUser.username ?? null]
+    `INSERT INTO users (id, first_name, username, timezone)
+     VALUES ($1, $2, $3, COALESCE($4, 'UTC'))
+     ON CONFLICT (id) DO UPDATE SET
+       first_name = EXCLUDED.first_name,
+       username = EXCLUDED.username,
+       timezone = COALESCE($4, users.timezone)`,
+    [telegramUser.id, telegramUser.first_name ?? 'Без имени', telegramUser.username ?? null, timezone ?? null]
   )
+}
+
+export async function getUserById(id) {
+  const { rows } = await pool.query('SELECT id, first_name, username, timezone FROM users WHERE id = $1', [id])
+  return rows[0] ?? null
 }
 
 export async function listHabitsForUser(userId) {
@@ -45,10 +53,14 @@ export async function addHabit({ ownerId, name, type, frequency, breakRule }) {
 
 // Marks today done for this user on this habit, and bumps the streak
 // counter once per day (idempotent - checking in twice same day is a no-op).
+// "Today" is computed in the checking-in user's own timezone, not the
+// server's - so someone in Moscow checking in at 11pm and someone in
+// New York checking in at 11pm both correctly log their own local day.
 export async function checkIn(habitId, userId) {
   const inserted = await pool.query(
     `INSERT INTO check_ins (habit_id, user_id, checkin_date)
-     VALUES ($1, $2, CURRENT_DATE)
+     SELECT $1, $2, (now() AT TIME ZONE u.timezone)::date
+     FROM users u WHERE u.id = $2
      ON CONFLICT DO NOTHING
      RETURNING *`,
     [habitId, userId]
@@ -82,7 +94,8 @@ export async function getHabitMembers(habitId) {
             to_char(ci.checked_at, 'HH24:MI') AS time
      FROM habit_members hm
      JOIN users u ON u.id = hm.user_id
-     LEFT JOIN check_ins ci ON ci.habit_id = hm.habit_id AND ci.user_id = hm.user_id AND ci.checkin_date = CURRENT_DATE
+     LEFT JOIN check_ins ci ON ci.habit_id = hm.habit_id AND ci.user_id = hm.user_id
+       AND ci.checkin_date = (now() AT TIME ZONE u.timezone)::date
      WHERE hm.habit_id = $1
      ORDER BY u.id`,
     [habitId]
@@ -110,20 +123,28 @@ export async function getCheckInsForMonth(habitId, year, month) {
 // in today, which means the streak was already (re)started and shouldn't
 // be clobbered by a reset job that happens to run again the same day.
 // Safe to run more than once a day.
+//
+// "Yesterday"/"today" are computed in the habit OWNER's timezone (a shared
+// habit only has one streak counter, so we need a single day boundary for
+// it - the owner's is the simplest reasonable choice). This does mean a
+// duo/team habit's deadline effectively follows the owner's clock, not
+// every member's - worth revisiting if that becomes a real complaint.
 export async function resetMissedStreaks() {
   const { rows } = await pool.query(
     `UPDATE habits h
      SET days = 0
-     WHERE h.days > 0
+     FROM users u
+     WHERE u.id = h.owner_id
+       AND h.days > 0
        AND NOT EXISTS (
          SELECT 1 FROM check_ins ci
          WHERE ci.habit_id = h.id
-           AND ci.checkin_date = CURRENT_DATE - INTERVAL '1 day'
+           AND ci.checkin_date = (now() AT TIME ZONE u.timezone)::date - INTERVAL '1 day'
        )
        AND NOT EXISTS (
          SELECT 1 FROM check_ins ci
          WHERE ci.habit_id = h.id
-           AND ci.checkin_date = CURRENT_DATE
+           AND ci.checkin_date = (now() AT TIME ZONE u.timezone)::date
        )
      RETURNING h.id, h.title`
   )

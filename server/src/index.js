@@ -4,6 +4,7 @@ import cors from 'cors'
 import { telegramAuth } from './middleware/telegramAuth.js'
 import { habitsRouter } from './routes/habits.js'
 import { scheduleStreakReset, runStreakReset } from './cron/resetStreaks.js'
+import { getUserById } from './data/store.js'
 
 const app = express()
 const PORT = process.env.PORT ?? 3000
@@ -21,7 +22,14 @@ app.get('/api/health', (req, res) => res.json({ ok: true }))
 // which lets requests through with no initData at all (local dev only).
 app.use('/api', telegramAuth(BOT_TOKEN, { allowDevBypass: ALLOW_DEV_AUTH }))
 
-app.get('/api/me', (req, res) => res.json({ user: req.telegramUser }))
+app.get('/api/me', async (req, res, next) => {
+  try {
+    const user = await getUserById(req.telegramUser.id)
+    res.json({ user: user ?? req.telegramUser })
+  } catch (err) {
+    next(err)
+  }
+})
 app.use('/api/habits', habitsRouter)
 
 // Dev-only: trigger the daily streak-reset job on demand instead of waiting for 00:05.

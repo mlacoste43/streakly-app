@@ -1,8 +1,14 @@
+import { useEffect, useState } from 'react'
 import {
   IconArrowLeft, IconChevronRight, IconLanguage, IconMoon, IconBell, IconClock,
   IconUsers, IconWorld, IconSnowflake, IconLock, IconMessageCircle, IconInfoCircle,
 } from '@tabler/icons-react'
 import { useSettings } from '../context/SettingsContext.jsx'
+import { api } from '../api.js'
+
+// The browser always knows this for sure - used as an immediate fallback
+// while we wait for the backend to confirm what it has saved for the user.
+const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
 export default function SettingsScreen({ onBack, user }) {
   const {
@@ -13,6 +19,16 @@ export default function SettingsScreen({ onBack, user }) {
     reminderLeadHours,
     t,
   } = useSettings()
+
+  const [timezone, setTimezone] = useState(browserTimezone)
+
+  useEffect(() => {
+    // every request already sends X-Timezone (see src/api.js), so by the
+    // time this loads the backend should have the up-to-date value saved
+    api.getMe().then((res) => {
+      if (res.user?.timezone) setTimezone(res.user.timezone)
+    }).catch(() => {})
+  }, [])
 
   return (
     <div style={{ padding: 16, maxWidth: 480, margin: '0 auto' }}>
@@ -83,7 +99,7 @@ export default function SettingsScreen({ onBack, user }) {
           checked={partnerAlert}
           onToggle={() => setPartnerAlert(!partnerAlert)}
         />
-        <Row icon={IconWorld} label={t('timezone')} value="Europe/Moscow" chevron last />
+        <Row icon={IconWorld} label={t('timezone')} value={timezone} last />
       </Group>
 
       <SectionLabel>{t('streaks')}</SectionLabel>

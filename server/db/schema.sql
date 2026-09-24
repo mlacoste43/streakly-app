@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
   id           BIGINT PRIMARY KEY,        -- Telegram user id
   first_name   TEXT NOT NULL,
   username     TEXT,
+  timezone     TEXT NOT NULL DEFAULT 'UTC', -- IANA name, e.g. 'Europe/Moscow'; detected client-side
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

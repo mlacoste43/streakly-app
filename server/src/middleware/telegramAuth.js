@@ -59,8 +59,13 @@ export function telegramAuth(botToken, { allowDevBypass = false } = {}) {
       user = result.user
     }
 
+    // Sent automatically by the frontend (see src/api.js) using
+    // Intl.DateTimeFormat().resolvedOptions().timeZone - the browser
+    // already knows the user's real IANA timezone, no picker UI needed.
+    const timezone = req.headers['x-timezone'] || null
+
     try {
-      await ensureUser(user)
+      await ensureUser(user, timezone)
     } catch (err) {
       console.error('Failed to upsert user', err)
       return res.status(500).json({ error: 'Database error' })
