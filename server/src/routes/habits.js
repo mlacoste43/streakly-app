@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import {
   listHabitsForUser, addHabit, findHabit, checkIn, getTeamMembers, getHabitMembers,
-  getCheckInsForMonth, updateHabit, deleteHabit,
+  getCheckInsForMonth, getFrozenDatesForMonth, updateHabit, deleteHabit,
 } from '../data/store.js'
 
 export const habitsRouter = Router()
@@ -77,8 +77,11 @@ habitsRouter.get('/:id/checkins', async (req, res, next) => {
       .split('-')
       .map(Number)
 
-    const dates = await getCheckInsForMonth(habit.id, year, month)
-    res.json({ dates })
+    const [dates, frozenDates] = await Promise.all([
+      getCheckInsForMonth(habit.id, year, month),
+      getFrozenDatesForMonth(habit.id, year, month),
+    ])
+    res.json({ dates, frozenDates })
   } catch (err) {
     next(err)
   }

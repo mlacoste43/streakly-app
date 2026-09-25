@@ -2,11 +2,12 @@
 --   psql -d streakly -f db/schema.sql
 
 CREATE TABLE IF NOT EXISTS users (
-  id           BIGINT PRIMARY KEY,        -- Telegram user id
-  first_name   TEXT NOT NULL,
-  username     TEXT,
-  timezone     TEXT NOT NULL DEFAULT 'UTC', -- IANA name, e.g. 'Europe/Moscow'; detected client-side
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+  id              BIGINT PRIMARY KEY,        -- Telegram user id
+  first_name      TEXT NOT NULL,
+  username        TEXT,
+  timezone        TEXT NOT NULL DEFAULT 'UTC', -- IANA name, e.g. 'Europe/Moscow'; detected client-side
+  streak_freezes  INT NOT NULL DEFAULT 2,      -- how many "skip a missed day for free" tokens the user has
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS habits (
@@ -41,3 +42,16 @@ CREATE TABLE IF NOT EXISTS check_ins (
 
 CREATE INDEX IF NOT EXISTS idx_habit_members_user ON habit_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_check_ins_habit_date ON check_ins(habit_id, checkin_date);
+
+-- Records the specific days a streak freeze saved a habit from breaking,
+-- so the month calendar can show a snowflake instead of a missed day.
+CREATE TABLE IF NOT EXISTS freeze_uses (
+  id          SERIAL PRIMARY KEY,
+  habit_id    INT NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
+  user_id     BIGINT NOT NULL REFERENCES users(id), -- whose freeze token was spent (the habit owner)
+  freeze_date DATE NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (habit_id, freeze_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_freeze_uses_habit_date ON freeze_uses(habit_id, freeze_date);

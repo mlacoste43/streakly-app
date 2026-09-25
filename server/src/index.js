@@ -36,8 +36,8 @@ app.use('/api/habits', habitsRouter)
 if (ALLOW_DEV_AUTH) {
   app.post('/api/dev/run-streak-reset', async (req, res, next) => {
     try {
-      const broken = await runStreakReset()
-      res.json({ broken })
+      const result = await runStreakReset()
+      res.json(result)
     } catch (err) {
       next(err)
     }

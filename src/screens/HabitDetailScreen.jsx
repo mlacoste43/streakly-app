@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
-import { IconArrowLeft, IconFlame, IconCheck, IconClock, IconPencil } from '@tabler/icons-react'
+import { IconArrowLeft, IconFlame, IconCheck, IconClock, IconPencil, IconSnowflake } from '@tabler/icons-react'
 import { api } from '../api.js'
 
 const weekLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
 // Builds a Mon-first calendar grid for the given month, marking each day
-// as done / missed / future based on real check-in dates from the API.
-function buildMonthGrid(year, month, checkedDates) {
+// as done / frozen / missed / future based on real data from the API.
+function buildMonthGrid(year, month, checkedDates, frozenDates) {
   const checkedSet = new Set(checkedDates)
+  const frozenSet = new Set(frozenDates)
   const firstOfMonth = new Date(year, month - 1, 1)
   const daysInMonth = new Date(year, month, 0).getDate()
   // JS getDay(): 0=Sun..6=Sat -> convert to Mon-first (0=Mon..6=Sun)
@@ -23,6 +24,7 @@ function buildMonthGrid(year, month, checkedDates) {
     let status
     if (dateStr > todayStr) status = 'future'
     else if (checkedSet.has(dateStr)) status = 'done'
+    else if (frozenSet.has(dateStr)) status = 'frozen'
     else status = 'missed'
     cells.push({ day, status })
   }
@@ -32,6 +34,7 @@ function buildMonthGrid(year, month, checkedDates) {
 
 export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) {
   const [checkedDates, setCheckedDates] = useState([])
+  const [frozenDates, setFrozenDates] = useState([])
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [checkingIn, setCheckingIn] = useState(false)
@@ -40,7 +43,7 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
   const year = now.getFullYear()
   const month = now.getMonth() + 1
   const monthKey = `${year}-${month}`
-  const grid = buildMonthGrid(year, month, checkedDates)
+  const grid = buildMonthGrid(year, month, checkedDates, frozenDates)
 
   useEffect(() => {
     let cancelled = false
@@ -52,6 +55,7 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
       .then(([checkinsRes, membersRes]) => {
         if (cancelled) return
         setCheckedDates(checkinsRes.dates)
+        setFrozenDates(checkinsRes.frozenDates ?? [])
         setMembers(membersRes.members)
       })
       .catch(() => {})
@@ -160,20 +164,30 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
             {grid.map((cell, i) => {
               if (!cell) return <div key={i} />
               const { status } = cell
+              const bg =
+                status === 'done' ? 'var(--duo-border)'
+                : status === 'frozen' ? '#BEE3F8'
+                : status === 'missed' ? 'var(--danger-bg)'
+                : 'transparent'
+              const border =
+                status === 'missed' ? '2px solid var(--danger-border)'
+                : status === 'future' ? '2px dashed var(--border)'
+                : 'none'
               return (
                 <div
                   key={i}
                   style={{
                     aspectRatio: '1',
                     borderRadius: 8,
-                    background: status === 'done' ? 'var(--duo-border)' : status === 'missed' ? 'var(--danger-bg)' : 'transparent',
-                    border: status === 'missed' ? '2px solid var(--danger-border)' : status === 'future' ? '2px dashed var(--border)' : 'none',
+                    background: bg,
+                    border,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
                   {status === 'done' && <IconFlame size={12} color="var(--duo-fg)" />}
+                  {status === 'frozen' && <IconSnowflake size={12} color="#0C4A6E" />}
                 </div>
               )
             })}

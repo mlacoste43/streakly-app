@@ -21,12 +21,14 @@ export default function SettingsScreen({ onBack, user }) {
   } = useSettings()
 
   const [timezone, setTimezone] = useState(browserTimezone)
+  const [streakFreezes, setStreakFreezes] = useState(null)
 
   useEffect(() => {
     // every request already sends X-Timezone (see src/api.js), so by the
     // time this loads the backend should have the up-to-date value saved
     api.getMe().then((res) => {
       if (res.user?.timezone) setTimezone(res.user.timezone)
+      if (res.user?.streak_freezes != null) setStreakFreezes(res.user.streak_freezes)
     }).catch(() => {})
   }, [])
 
@@ -112,8 +114,9 @@ export default function SettingsScreen({ onBack, user }) {
         <div style={{ padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: 10 }}>
           <IconSnowflake size={18} color="var(--duo-icon)" />
           <p style={{ fontSize: 14, margin: 0, flex: 1, color: 'var(--duo-fg)' }}>{t('streakFreezes')}</p>
-          <span style={{ fontSize: 13, color: 'var(--duo-icon)', fontWeight: 500 }}>2 {t('available')}</span>
-          <IconChevronRight size={16} color="var(--duo-icon)" />
+          <span style={{ fontSize: 13, color: 'var(--duo-icon)', fontWeight: 500 }}>
+            {streakFreezes ?? '…'} {t('available')}
+          </span>
         </div>
       </div>
 

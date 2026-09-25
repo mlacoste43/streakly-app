@@ -18,7 +18,10 @@ export async function ensureUser(telegramUser, timezone) {
 }
 
 export async function getUserById(id) {
-  const { rows } = await pool.query('SELECT id, first_name, username, timezone FROM users WHERE id = $1', [id])
+  const { rows } = await pool.query(
+    'SELECT id, first_name, username, timezone, streak_freezes FROM users WHERE id = $1',
+    [id]
+  )
   return rows[0] ?? null
 }
 
@@ -118,11 +121,25 @@ export async function getCheckInsForMonth(habitId, year, month) {
   return rows.map((r) => r.checkin_date.toISOString().slice(0, 10))
 }
 
+// Days in a given month that were saved by a streak freeze (instead of
+// breaking the streak). Same string-date shape as getCheckInsForMonth.
+export async function getFrozenDatesForMonth(habitId, year, month) {
+  const { rows } = await pool.query(
+    `SELECT freeze_date
+     FROM freeze_uses
+     WHERE habit_id = $1
+       AND date_trunc('month', freeze_date) = date_trunc('month', make_date($2, $3, 1))
+     ORDER BY freeze_date`,
+    [habitId, year, month]
+  )
+  return rows.map((r) => r.freeze_date.toISOString().slice(0, 10))
+}
+
 // The core "don't break the streak" mechanic: any habit where NOBODY
 // checked in yesterday loses its streak - unless someone already checked
-// in today, which means the streak was already (re)started and shouldn't
-// be clobbered by a reset job that happens to run again the same day.
-// Safe to run more than once a day.
+// in today (streak already restarted, don't clobber it), OR the owner has
+// a streak freeze available, in which case we spend one freeze instead of
+// breaking the streak. Safe to run more than once a day.
 //
 // "Yesterday"/"today" are computed in the habit OWNER's timezone (a shared
 // habit only has one streak counter, so we need a single day boundary for
@@ -130,12 +147,12 @@ export async function getCheckInsForMonth(habitId, year, month) {
 // duo/team habit's deadline effectively follows the owner's clock, not
 // every member's - worth revisiting if that becomes a real complaint.
 export async function resetMissedStreaks() {
-  const { rows } = await pool.query(
-    `UPDATE habits h
-     SET days = 0
-     FROM users u
-     WHERE u.id = h.owner_id
-       AND h.days > 0
+  const { rows: candidates } = await pool.query(
+    `SELECT h.id, h.title, u.id AS owner_id, u.streak_freezes,
+            ((now() AT TIME ZONE u.timezone)::date - INTERVAL '1 day')::date AS missed_date
+     FROM habits h
+     JOIN users u ON u.id = h.owner_id
+     WHERE h.days > 0
        AND NOT EXISTS (
          SELECT 1 FROM check_ins ci
          WHERE ci.habit_id = h.id
@@ -145,10 +162,40 @@ export async function resetMissedStreaks() {
          SELECT 1 FROM check_ins ci
          WHERE ci.habit_id = h.id
            AND ci.checkin_date = (now() AT TIME ZONE u.timezone)::date
-       )
-     RETURNING h.id, h.title`
+       )`
   )
-  return rows
+
+  const broken = []
+  const frozen = []
+
+  for (const habit of candidates) {
+    if (habit.streak_freezes > 0) {
+      // spend one freeze: decrement the owner's balance and record which
+      // day it saved, but leave the streak count untouched
+      const { rowCount } = await pool.query(
+        `UPDATE users SET streak_freezes = streak_freezes - 1
+         WHERE id = $1 AND streak_freezes > 0`,
+        [habit.owner_id]
+      )
+      if (rowCount > 0) {
+        await pool.query(
+          `INSERT INTO freeze_uses (habit_id, user_id, freeze_date)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (habit_id, freeze_date) DO NOTHING`,
+          [habit.id, habit.owner_id, habit.missed_date]
+        )
+        frozen.push({ id: habit.id, title: habit.title })
+        continue
+      }
+      // fell through: someone else's concurrent request spent the last
+      // freeze first - fall through to breaking the streak below
+    }
+
+    await pool.query('UPDATE habits SET days = 0 WHERE id = $1', [habit.id])
+    broken.push({ id: habit.id, title: habit.title })
+  }
+
+  return { broken, frozen }
 }
 
 export async function updateHabit(id, { name, type, frequency, breakRule }) {

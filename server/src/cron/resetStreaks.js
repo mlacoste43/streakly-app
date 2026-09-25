@@ -2,20 +2,21 @@ import cron from 'node-cron'
 import { resetMissedStreaks } from '../data/store.js'
 
 export async function runStreakReset() {
-  const broken = await resetMissedStreaks()
+  const { broken, frozen } = await resetMissedStreaks()
   if (broken.length > 0) {
     console.log(`Streak reset: broke ${broken.length} streak(s) ->`, broken.map((h) => h.title).join(', '))
-  } else {
+  }
+  if (frozen.length > 0) {
+    console.log(`Streak reset: saved ${frozen.length} streak(s) with a freeze ->`, frozen.map((h) => h.title).join(', '))
+  }
+  if (broken.length === 0 && frozen.length === 0) {
     console.log('Streak reset: nothing to break')
   }
-  return broken
+  return { broken, frozen }
 }
 
-// Runs once a day at 00:05 server time. This is intentionally simple for
-// now - it doesn't yet account for each user's own timezone (see
-// habits.deadline_hours / a future per-user timezone column), so a habit's
-// "day" currently ends at server midnight for everyone. Good enough for
-// local development; worth revisiting once users span timezones for real.
+// Runs once a day at 00:05 server time, per-habit day boundaries follow
+// the habit owner's own timezone (see store.js).
 export function scheduleStreakReset() {
   cron.schedule('5 0 * * *', () => {
     runStreakReset().catch((err) => console.error('Streak reset failed', err))
