@@ -10,9 +10,7 @@ pool.on('error', (err) => {
   console.error('Unexpected Postgres error on idle client', err)
 })
 
-// Auto-migrations: run on every startup, safe to repeat (IF NOT EXISTS / IF NOT EXISTS column).
-// Add new schema changes here instead of manual psql runs.
-async function runMigrations() {
+
   const client = await pool.connect()
   try {
     await client.query(`
