@@ -9,3 +9,7 @@ export const pool = new Pool({
 pool.on('error', (err) => {
   console.error('Unexpected Postgres error on idle client', err)
 })
+
+pool.query(`
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS timezone TEXT NOT NULL DEFAULT 'UTC';
+`).catch((err) => console.error('Migration error:', err))
