@@ -1,78 +1,102 @@
-import { IconCheck, IconAlarm } from '@tabler/icons-react'
+import { useSettings } from '../context/SettingsContext.jsx'
 
 // `variant` picks the color pair from index.css: 'solo' | 'duo' | 'team' | 'danger'
+// needsCheckIn = the streak is at risk today -> show the check-in button
 export default function StreakCard({
   icon: Icon,
   title,
   subtitle,
   days,
+  record,
   variant = 'solo',
-  isOverdue = false,
+  needsCheckIn = false,
+  people = [],
   onCheckIn,
   onOpen,
 }) {
+  const { t } = useSettings()
+  const best = Math.max(record ?? 0, days)
+  const pct = best > 0 ? Math.min(100, (days / best) * 100) : 0
+
   return (
-    <div
-      className="streak-card"
+    <article
+      className="card-ng streak-card"
       onClick={onOpen}
-      style={{
-        background: `var(--${variant}-bg)`,
-        border: `2px solid var(--${variant}-border)`,
-        borderRadius: 16,
-        padding: '0.9rem 1rem',
-        cursor: onOpen ? 'pointer' : 'default',
-      }}
+      style={{ cursor: onOpen ? 'pointer' : 'default' }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <div
           style={{
-            width: 46,
-            height: 46,
-            borderRadius: 14,
-            background: `var(--${variant}-icon)`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
+            width: 54, height: 54, borderRadius: 17, flexShrink: 0,
+            background: `var(--${variant}-bg)`,
+            display: 'grid', placeItems: 'center',
           }}
         >
-          <Icon size={24} color={`var(--${variant}-bg)`} />
+          <Icon size={28} color={`var(--${variant}-icon)`} />
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 15, fontWeight: 500, margin: 0, color: `var(--${variant}-fg)` }}>
+          <h3 style={{ fontSize: 17, lineHeight: 1.3, margin: '0 0 2px', overflowWrap: 'anywhere' }}>
             {title}
-          </p>
-          <span style={{ fontSize: 11, color: `var(--${variant}-icon)` }}>{subtitle}</span>
+          </h3>
+          <span
+            style={{
+              fontSize: 12,
+              color: needsCheckIn ? 'var(--danger-icon)' : 'var(--text-secondary)',
+              fontWeight: needsCheckIn ? 700 : 400,
+            }}
+          >
+            {subtitle}
+          </span>
         </div>
 
-        {!isOverdue && (
-          <p style={{ fontSize: 20, fontWeight: 500, margin: 0, color: `var(--${variant}-icon)`, display: 'flex', alignItems: 'center', gap: 4 }}>
-            🔥 {days}
-          </p>
-        )}
+        <div className="streak-pill" title={t('streak')}>🔥 {days}</div>
       </div>
 
-      {isOverdue && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onCheckIn?.()
-          }}
-          style={{
-            width: '100%',
-            marginTop: 10,
-            background: 'var(--danger-icon)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 12,
-            fontWeight: 500,
-            padding: 10,
-          }}
-        >
-          Спасти стрик
-        </button>
-      )}
-    </div>
+      <div
+        style={{
+          display: 'flex', justifyContent: 'space-between', gap: 12,
+          margin: '16px 0 8px', fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700,
+        }}
+      >
+        <span>{t('streakToRecord')}</span>
+        <span>{days} / {best}</span>
+      </div>
+      <div
+        className="track"
+        role="progressbar"
+        aria-valuenow={days}
+        aria-valuemin={0}
+        aria-valuemax={best}
+      >
+        <div className="fill" style={{ width: `${pct}%` }} />
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {people.map((p, i) => (
+            <span key={i} className="person" style={{ marginLeft: i ? -4 : 0 }}>
+              {String(p)[0]}
+            </span>
+          ))}
+        </div>
+
+        {needsCheckIn ? (
+          <button
+            className="btn small"
+            onClick={(e) => {
+              e.stopPropagation()
+              onCheckIn?.()
+            }}
+          >
+            {t('checkInBtn')}
+          </button>
+        ) : (
+          <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--primary-dark)' }}>
+            {t('allGood')}
+          </span>
+        )}
+      </div>
+    </article>
   )
 }
