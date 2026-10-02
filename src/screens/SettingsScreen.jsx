@@ -41,30 +41,6 @@ export default function SettingsScreen({ onBack, user }) {
         <p style={{ fontSize: 16, fontWeight: 500, margin: 0 }}>{t('settings')}</p>
       </div>
 
-      <div
-        style={{
-          background: 'var(--surface)', borderRadius: 16, padding: 16, marginBottom: 16,
-          display: 'flex', alignItems: 'center', gap: 12, border: '1px solid var(--border)',
-        }}
-      >
-        <div
-          style={{
-            width: 48, height: 48, borderRadius: '50%', background: 'var(--team-icon)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 18, fontWeight: 500, color: '#fff', flexShrink: 0,
-          }}
-        >
-          {(user?.first_name ?? 'Т')[0]}
-        </div>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 14, fontWeight: 500, margin: 0 }}>{user?.first_name ?? 'Тимофей'}</p>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 0' }}>
-            @{user?.username ?? 'timofey_streaks'}
-          </p>
-        </div>
-        <IconChevronRight size={16} color="var(--text-secondary)" />
-      </div>
-
       <SectionLabel>{t('view')}</SectionLabel>
       <Group>
         <Row
@@ -103,22 +79,6 @@ export default function SettingsScreen({ onBack, user }) {
         />
         <Row icon={IconWorld} label={t('timezone')} value={timezone} last />
       </Group>
-
-      <SectionLabel>{t('streaks')}</SectionLabel>
-      <div
-        style={{
-          background: 'var(--duo-bg)', border: '2px solid var(--duo-border)', borderRadius: 16,
-          marginBottom: 16, overflow: 'hidden',
-        }}
-      >
-        <div style={{ padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <IconSnowflake size={18} color="var(--duo-icon)" />
-          <p style={{ fontSize: 14, margin: 0, flex: 1, color: 'var(--duo-fg)' }}>{t('streakFreezes')}</p>
-          <span style={{ fontSize: 13, color: 'var(--duo-icon)', fontWeight: 500 }}>
-            {streakFreezes ?? '…'} {t('available')}
-          </span>
-        </div>
-      </div>
 
       <SectionLabel>{t('privacySupport')}</SectionLabel>
       <Group>
