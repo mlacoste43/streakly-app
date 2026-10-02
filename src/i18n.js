@@ -24,16 +24,31 @@ export const translations = {
     hours3: '3 часа',
   },
   en: {
-    appName: 'Shagai', yourHabits: 'My challenges', newHabit: 'Create challenge',
-    heroBadge: 'ONE SMALL STEP EVERY DAY', heroTitle1: 'Better together.', heroTitle2: 'More fun, too.', heroText: 'Choose a challenge, celebrate progress, and support each other.',
-    totalFireDays: 'Total active streak days', totalCount: 'total', planToday: "Today's plan", planAllDone: 'All done. Great job!', planKeepGoing: 'Every check-in counts',
-    loading: 'LoadingвЂ¦', loadError: 'Could not load challenges', emptyHabits: 'Your first step starts with a challenge рџЊ±',
-    duoWith: 'With', team: 'Team', solo: 'Solo', hoursLeft: 'left', hoursShort: 'h',
-    tipTitle: 'No guilt here', tipText: 'Missed a day? That is okay. Coming back matters more than being perfect.',
-    streak: 'Current streak', streakToRecord: 'Progress toward record', checkInBtn: 'Check in', allGood: 'вњ“ Done today',
-    settings: 'Settings', view: 'Appearance', language: 'Language', darkTheme: 'Dark theme', notifications: 'Notifications',
-    deadlineReminder: 'Deadline reminders', reminderLeadTime: 'Reminder lead time', partnerAlert: 'Partner/team not checked in', timezone: 'Timezone',
-    streaks: 'Streaks', streakFreezes: 'Streak freezes', available: 'available', privacySupport: 'Privacy & support', whoSeesStreaks: 'Who sees my streaks', onlyMembers: 'Members only', feedback: 'Feedback', about: 'About', deleteAccount: 'Delete account', hours3: '3 hours',
+    appName: 'Streakly',
+    yourHabits: 'Your habits',
+    newHabit: 'New habit',
+    settings: 'Settings',
+    view: 'Appearance',
+    language: 'Language',
+    darkTheme: 'Dark theme',
+    notifications: 'Notifications',
+    deadlineReminder: 'Deadline reminders',
+    reminderLeadTime: 'Reminder lead time',
+    partnerAlert: 'Partner/team not checked in',
+    timezone: 'Timezone',
+    streaks: 'Streaks',
+    streakFreezes: 'Streak freezes',
+    available: 'available',
+    privacySupport: 'Privacy & support',
+    whoSeesStreaks: 'Who sees my streaks',
+    onlyMembers: 'Members only',
+    feedback: 'Feedback',
+    about: 'About',
+    deleteAccount: 'Delete account',
+    hours3: '3 hours',
   },
 }
-export function t(key, language) { return translations[language]?.[key] ?? translations.ru[key] ?? key }
+
+export function t(key, language) {
+  return translations[language]?.[key] ?? translations.ru[key] ?? key
+}
