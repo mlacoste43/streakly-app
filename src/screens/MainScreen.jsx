@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { IconFlame, IconSettings, IconPlus, IconRun, IconLanguage, IconBook, IconUsers, IconTargetArrow } from '@tabler/icons-react'
+import { IconFlame, IconSettings, IconPlus, IconRun, IconLanguage, IconBook, IconUsers } from '@tabler/icons-react'
 import StreakCard from '../components/StreakCard.jsx'
 import { api } from '../api.js'
 import { useSettings } from '../context/SettingsContext.jsx'
@@ -45,7 +45,6 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenSettings 
 
   const collective = habits.filter((h) => h.type === 'duo' || h.type === 'team')
   const visible = tab === 'together' ? collective : habits
-  const safeCount = habits.filter((h) => !h.deadlineHours).length
   const totalDays = habits.reduce((sum, h) => sum + (Number(h.days) || 0), 0)
   const dateLabel = new Date().toLocaleDateString(language === 'ru' ? 'ru-RU' : 'en-US', {
     weekday: 'long', day: 'numeric', month: 'long',
@@ -82,22 +81,15 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenSettings 
           <div className="mascot" aria-hidden="true"><span>🐸</span><small>{t('mascotText')}</small></div>
         </section>
 
-        <div className="dashboard-grid">
-          <section className="habits-section">
-            <div className="section-head"><h2>{tab === 'together' ? t('togetherHabits') : t('yourHabits')}</h2><span className="small-muted">{visible.length} {t('totalCount')}</span></div>
-            {loading && <div className="card-ng status-card" role="status">{t('loading')}</div>}
-            {error && <div className="card-ng status-card error" role="alert">{t('loadError')}: {error}</div>}
-            {!loading && !error && visible.length === 0 && <div className="card-ng status-card">{tab === 'together' ? t('emptyTogether') : t('emptyHabits')}</div>}
-            <div className="habits-grid">
-              {visible.map((h) => <StreakCard key={h.id} icon={ICONS[h.icon] ?? IconFlame} title={h.title} subtitle={subtitleFor(h)} days={h.days} record={h.record} variant={h.variant} needsCheckIn={Boolean(h.deadlineHours)} checkingIn={checkingId === h.id} people={h.type === 'duo' && h.partner ? [h.partner] : []} onCheckIn={() => handleCheckIn(h)} onOpen={() => onOpenHabit?.(h)} />)}
-            </div>
-          </section>
-          <aside className="dashboard-rail">
-            <section className="card-ng plan-card"><h3>🎯 {t('planToday')}</h3><p className="small-muted">{habits.length > 0 && safeCount === habits.length ? t('planAllDone') : t('planKeepGoing')}</p><div className="daily-count">{safeCount} <span>/ {habits.length}</span></div><div className="track" role="progressbar" aria-label={t('planToday')} aria-valuemin={0} aria-valuemax={habits.length} aria-valuenow={safeCount}><div className="fill" style={{ width: `${habits.length ? safeCount / habits.length * 100 : 0}%` }} /></div></section>
-            <section className="card-ng together-card"><h3><IconTargetArrow size={22} /> {t('betterTogether')}</h3><p className="small-muted">{t('habitsWithPartners')}</p><div className="daily-count">{collective.length}</div><button className="btn secondary" onClick={() => setTab('together')}>{t('seeTogether')}</button></section>
-            <section className="tip-card"><h3>💜 {t('tipTitle')}</h3><p>{t('tipText')}</p></section>
-          </aside>
-        </div>
+        <section className="habits-section">
+          <div className="section-head"><h2>{tab === 'together' ? t('togetherHabits') : t('yourHabits')}</h2><span className="small-muted">{visible.length} {t('totalCount')}</span></div>
+          {loading && <div className="card-ng status-card" role="status">{t('loading')}</div>}
+          {error && <div className="card-ng status-card error" role="alert">{t('loadError')}: {error}</div>}
+          {!loading && !error && visible.length === 0 && <div className="card-ng status-card">{tab === 'together' ? t('emptyTogether') : t('emptyHabits')}</div>}
+          <div className="habits-grid">
+            {visible.map((h) => <StreakCard key={h.id} icon={ICONS[h.icon] ?? IconFlame} title={h.title} subtitle={subtitleFor(h)} days={h.days} record={h.record} variant={h.variant} needsCheckIn={Boolean(h.deadlineHours)} checkingIn={checkingId === h.id} people={h.type === 'duo' && h.partner ? [h.partner] : []} onCheckIn={() => handleCheckIn(h)} onOpen={() => onOpenHabit?.(h)} />)}
+          </div>
+        </section>
       </main>
     </div>
   )
