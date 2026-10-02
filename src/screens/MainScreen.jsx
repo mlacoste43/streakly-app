@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
-import { IconFlame, IconSettings, IconPlus, IconRun, IconLanguage, IconBook, IconUsers } from '@tabler/icons-react'
+import { IconFlame, IconSettings, IconPlus, IconRun, IconLanguage, IconBook, IconUsers, IconTargetArrow } from '@tabler/icons-react'
 import StreakCard from '../components/StreakCard.jsx'
 import { api } from '../api.js'
 import { useSettings } from '../context/SettingsContext.jsx'
 
-// Backend sends the icon as a string (see server/src/data/store.js) - map it to a real icon here.
 const ICONS = { run: IconRun, language: IconLanguage, book: IconBook, users: IconUsers }
 
 export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenSettings }) {
@@ -12,128 +11,94 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenSettings 
   const [habits, setHabits] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [tab, setTab] = useState('all')
+  const [checkingId, setCheckingId] = useState(null)
 
   useEffect(() => {
-    api
-      .getHabits()
-      .then((data) => setHabits(data.habits))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
+    let active = true
+    api.getHabits()
+      .then((data) => { if (active) setHabits(data.habits ?? []) })
+      .catch((err) => { if (active) setError(err.message) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
   }, [])
 
   async function handleCheckIn(habit) {
+    if (checkingId != null) return
+    setCheckingId(habit.id)
     try {
       const { habit: updated } = await api.checkIn(habit.id)
-      setHabits((prev) => prev.map((h) => (h.id === updated.id ? updated : h)))
+      setHabits((prev) => prev.map((h) => h.id === updated.id ? updated : h))
     } catch (err) {
       alert(err.message)
+    } finally {
+      setCheckingId(null)
     }
   }
 
   function subtitleFor(h) {
-    if (h.type === 'duo') return `${t('duoWith')} ${h.partner ?? '...'}`
+    if (h.type === 'duo') return `${t('duoWith')} ${h.partner ?? '…'}`
     if (h.type === 'team') return t('team')
     if (h.deadlineHours) return `${t('solo')} · ${t('hoursLeft')} ${h.deadlineHours} ${t('hoursShort')}`
     return t('solo')
   }
 
-  const totalDays = habits.reduce((sum, h) => sum + h.days, 0)
-  // a habit with deadlineHours still needs today's check-in (same rule the old card used)
+  const collective = habits.filter((h) => h.type === 'duo' || h.type === 'team')
+  const visible = tab === 'together' ? collective : habits
   const safeCount = habits.filter((h) => !h.deadlineHours).length
-  const allSafe = habits.length > 0 && safeCount === habits.length
-
+  const totalDays = habits.reduce((sum, h) => sum + (Number(h.days) || 0), 0)
   const dateLabel = new Date().toLocaleDateString(language === 'ru' ? 'ru-RU' : 'en-US', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
+    weekday: 'long', day: 'numeric', month: 'long',
   })
 
   return (
-    <div style={{ padding: 16, paddingBottom: 40, maxWidth: 480, margin: '0 auto' }}>
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 20 }}>
-        <div className="eyebrow">{dateLabel}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div className="pill" title={t('totalFireDays')}>🔥 {totalDays}</div>
-          <button className="tile-btn" onClick={onOpenSettings} aria-label={t('settings')}>
-            <IconSettings size={20} />
-          </button>
-        </div>
-      </header>
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand"><span className="brand-mark" aria-hidden="true">✳</span><span>{t('appName')}</span></div>
+        <div className="tagline">{t('tagline')}</div>
+        <nav className="side-nav" aria-label={t('navChallenges')}>
+          <button className={`nav-btn ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')} aria-current={tab === 'all' ? 'page' : undefined}>🏁 <span>{t('navChallenges')}</span></button>
+          <button className={`nav-btn ${tab === 'together' ? 'active' : ''}`} onClick={() => setTab('together')} aria-current={tab === 'together' ? 'page' : undefined}>👋 <span>{t('navTogether')}</span></button>
+          <button className="nav-btn" onClick={onOpenSettings}>⚙️ <span>{t('settings')}</span></button>
+        </nav>
+        <div className="sidebar-note"><strong>{t('sidebarNoteTitle')}</strong><p>{t('sidebarNoteText')}</p></div>
+      </aside>
 
-      <section className="hero">
-        <div>
-          <span className="badge">{t('heroBadge')}</span>
-          <h1>
-            {t('heroTitle1')}
-            <br />
-            {t('heroTitle2')}
-          </h1>
-          <p>{t('heroText')}</p>
-          <button className="btn" onClick={onCreateHabit}>
-            <IconPlus size={18} />
-            {t('newHabit')}
-          </button>
-        </div>
-        <div className="mascot" aria-hidden="true">🐸</div>
-      </section>
-
-      {habits.length > 0 && (
-        <section className="card-ng" style={{ marginBottom: 20 }}>
-          <h3 style={{ margin: '0 0 4px', fontSize: 16 }}>🎯 {t('planToday')}</h3>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-            {allSafe ? t('planAllDone') : t('planKeepGoing')}
+      <main className="main-content">
+        <header className="topbar">
+          <span className="eyebrow">{dateLabel}</span>
+          <div className="top-actions">
+            <span className="pill" title={t('totalFireDays')}>🔥 {totalDays}</span>
+            <button className="tile-btn" onClick={onOpenSettings} aria-label={t('settings')}><IconSettings size={20} /></button>
           </div>
-          <div style={{ fontSize: 34, fontWeight: 900, lineHeight: 1.2, margin: '12px 0' }}>
-            {safeCount}{' '}
-            <span style={{ color: 'var(--text-secondary)', fontSize: 20 }}>/ {habits.length}</span>
+        </header>
+        <section className="hero">
+          <div className="hero-copy">
+            <span className="badge">{t('heroBadge')}</span>
+            <h1>{t('heroTitle1')}<br />{t('heroTitle2')}</h1>
+            <p>{t('heroText')}</p>
+            <button className="btn" onClick={onCreateHabit}><IconPlus size={19} />{t('newHabit')}</button>
           </div>
-          <div className="track">
-            <div className="fill" style={{ width: `${(safeCount / habits.length) * 100}%` }} />
-          </div>
+          <div className="mascot" aria-hidden="true"><span>🐸</span><small>{t('mascotText')}</small></div>
         </section>
-      )}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <h2 style={{ fontSize: 21, margin: 0, letterSpacing: -0.5 }}>{t('yourHabits')}</h2>
-        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-          {habits.length} {t('totalCount')}
-        </span>
-      </div>
-
-      {loading && <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t('loading')}</p>}
-      {error && (
-        <p style={{ fontSize: 13, color: 'var(--danger-icon)' }}>
-          {t('loadError')}: {error}
-        </p>
-      )}
-      {!loading && !error && habits.length === 0 && (
-        <div className="card-ng" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 28 }}>
-          {t('emptyHabits')}
+        <div className="dashboard-grid">
+          <section className="habits-section">
+            <div className="section-head"><h2>{tab === 'together' ? t('togetherHabits') : t('yourHabits')}</h2><span className="small-muted">{visible.length} {t('totalCount')}</span></div>
+            {loading && <div className="card-ng status-card" role="status">{t('loading')}</div>}
+            {error && <div className="card-ng status-card error" role="alert">{t('loadError')}: {error}</div>}
+            {!loading && !error && visible.length === 0 && <div className="card-ng status-card">{tab === 'together' ? t('emptyTogether') : t('emptyHabits')}</div>}
+            <div className="habits-grid">
+              {visible.map((h) => <StreakCard key={h.id} icon={ICONS[h.icon] ?? IconFlame} title={h.title} subtitle={subtitleFor(h)} days={h.days} record={h.record} variant={h.variant} needsCheckIn={Boolean(h.deadlineHours)} checkingIn={checkingId === h.id} people={h.type === 'duo' && h.partner ? [h.partner] : []} onCheckIn={() => handleCheckIn(h)} onOpen={() => onOpenHabit?.(h)} />)}
+            </div>
+          </section>
+          <aside className="dashboard-rail">
+            <section className="card-ng plan-card"><h3>🎯 {t('planToday')}</h3><p className="small-muted">{habits.length > 0 && safeCount === habits.length ? t('planAllDone') : t('planKeepGoing')}</p><div className="daily-count">{safeCount} <span>/ {habits.length}</span></div><div className="track" role="progressbar" aria-label={t('planToday')} aria-valuemin={0} aria-valuemax={habits.length} aria-valuenow={safeCount}><div className="fill" style={{ width: `${habits.length ? safeCount / habits.length * 100 : 0}%` }} /></div></section>
+            <section className="card-ng together-card"><h3><IconTargetArrow size={22} /> {t('betterTogether')}</h3><p className="small-muted">{t('habitsWithPartners')}</p><div className="daily-count">{collective.length}</div><button className="btn secondary" onClick={() => setTab('together')}>{t('seeTogether')}</button></section>
+            <section className="tip-card"><h3>💜 {t('tipTitle')}</h3><p>{t('tipText')}</p></section>
+          </aside>
         </div>
-      )}
-
-      <div style={{ display: 'grid', gap: 16 }}>
-        {habits.map((h) => (
-          <StreakCard
-            key={h.id}
-            icon={ICONS[h.icon] ?? IconFlame}
-            title={h.title}
-            subtitle={subtitleFor(h)}
-            days={h.days}
-            record={h.record}
-            variant={h.variant}
-            needsCheckIn={Boolean(h.deadlineHours)}
-            people={h.type === 'duo' && h.partner ? [h.partner] : []}
-            onCheckIn={() => handleCheckIn(h)}
-            onOpen={() => onOpenHabit?.(h)}
-          />
-        ))}
-      </div>
-
-      <section className="tip-card" style={{ marginTop: 20 }}>
-        <h3>💜 {t('tipTitle')}</h3>
-        <p>{t('tipText')}</p>
-      </section>
+      </main>
     </div>
   )
 }
