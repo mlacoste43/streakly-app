@@ -1,7 +1,11 @@
 export const translations = {
   ru: {
     appName: 'Streakly',
+    tagline: 'ВМЕСТЕ ЛЕГЧЕ',
+    navChallenges: 'Привычки',
+    navTogether: 'Совместные',
     yourHabits: 'Твои привычки',
+    togetherHabits: 'Совместные привычки',
     newHabit: 'Новая привычка',
     settings: 'Настройки',
     view: 'Вид',
@@ -22,10 +26,52 @@ export const translations = {
     about: 'О приложении',
     deleteAccount: 'Удалить аккаунт',
     hours3: '3 часа',
+
+    sidebarNoteTitle: 'Маленькие шаги — большие перемены.',
+    sidebarNoteText: 'Отмечайся каждый день. Вместе легче!',
+    mascotText: 'Ты сможешь!',
+
+    heroBadge: 'ОДИН МАЛЕНЬКИЙ ШАГ КАЖДЫЙ ДЕНЬ',
+    heroTitle1: 'Вместе лучше.',
+    heroTitle2: 'И веселее тоже.',
+    heroText: 'Выбери привычку, отмечай прогресс и поддерживай друг друга.',
+    totalFireDays: 'Всего дней в стриках',
+    totalCount: 'всего',
+
+    planToday: 'План на сегодня',
+    planAllDone: 'Всё готово. Отличная работа!',
+    planKeepGoing: 'Каждая отметка на счету',
+
+    loading: 'Загрузка…',
+    loadError: 'Не удалось загрузить привычки',
+    emptyHabits: 'Твой первый шаг начинается с привычки 🌱',
+    emptyTogether: 'Создай привычку для двоих или команды 🌱',
+
+    duoWith: 'С',
+    team: 'Команда',
+    solo: 'Соло',
+    hoursLeft: 'осталось',
+    hoursShort: 'ч',
+
+    tipTitle: 'Здесь не стыдно',
+    tipText: 'Пропустил день? Это нормально. Вернуться важнее, чем быть идеальным.',
+
+    streak: 'Текущий стрик',
+    streakToRecord: 'До рекорда',
+    checkInBtn: 'Отметиться',
+    allGood: '✓ Сделано сегодня',
+
+    betterTogether: 'Вместе веселее',
+    habitsWithPartners: 'Привычки с партнёрами и командами',
+    seeTogether: 'Смотреть совместные',
   },
   en: {
     appName: 'Streakly',
+    tagline: 'BETTER TOGETHER',
+    navChallenges: 'Challenges',
+    navTogether: 'Together',
     yourHabits: 'Your habits',
+    togetherHabits: 'Together challenges',
     newHabit: 'New habit',
     settings: 'Settings',
     view: 'Appearance',
@@ -46,6 +92,44 @@ export const translations = {
     about: 'About',
     deleteAccount: 'Delete account',
     hours3: '3 hours',
+
+    sidebarNoteTitle: 'Small steps, big changes.',
+    sidebarNoteText: 'Check in every day. Better together!',
+    mascotText: 'You got this!',
+
+    heroBadge: 'ONE SMALL STEP EVERY DAY',
+    heroTitle1: 'Better together.',
+    heroTitle2: 'More fun, too.',
+    heroText: 'Choose a challenge, celebrate progress, and support each other.',
+    totalFireDays: 'Total active streak days',
+    totalCount: 'total',
+
+    planToday: "Today's plan",
+    planAllDone: 'All done. Great job!',
+    planKeepGoing: 'Every check-in counts',
+
+    loading: 'Loading…',
+    loadError: 'Could not load habits',
+    emptyHabits: 'Your first step starts with a habit 🌱',
+    emptyTogether: 'Create a duo or team challenge 🌱',
+
+    duoWith: 'With',
+    team: 'Team',
+    solo: 'Solo',
+    hoursLeft: 'left',
+    hoursShort: 'h',
+
+    tipTitle: 'No guilt here',
+    tipText: 'Missed a day? That is okay. Coming back matters more than being perfect.',
+
+    streak: 'Current streak',
+    streakToRecord: 'Progress toward record',
+    checkInBtn: 'Check in',
+    allGood: '✓ Done today',
+
+    betterTogether: 'Better together',
+    habitsWithPartners: 'Habits with partners and teams',
+    seeTogether: 'See together',
   },
 }
 
