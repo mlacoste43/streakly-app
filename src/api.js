@@ -29,6 +29,7 @@ async function request(path, options = {}) {
 
 export const api = {
   getMe: () => request('/api/me'),
+  updateMe: (data) => request('/api/me', { method: 'PATCH', body: JSON.stringify(data) }),
   getHabits: () => request('/api/habits'),
   createHabit: (data) => request('/api/habits', { method: 'POST', body: JSON.stringify(data) }),
   updateHabit: (id, data) => request(`/api/habits/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),

@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   timezone        TEXT NOT NULL DEFAULT 'UTC', -- IANA name, e.g. 'Europe/Moscow'; detected client-side
   streak_freezes  INT NOT NULL DEFAULT 2,      -- how many "skip a missed day for free" tokens the user has
   deadline_reminder_enabled BOOLEAN NOT NULL DEFAULT true, -- "напоминания о дедлайне" toggle in settings
+  reminder_lead_hours INT NOT NULL DEFAULT 3
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

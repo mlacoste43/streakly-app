@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reminder_lead_hours INT NOT NULL DEFAULT 3;

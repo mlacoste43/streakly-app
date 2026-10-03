@@ -19,7 +19,7 @@ export async function ensureUser(telegramUser, timezone) {
 
 export async function getUserById(id) {
   const { rows } = await pool.query(
-    'SELECT id, first_name, username, timezone, streak_freezes, deadline_reminder_enabled FROM users WHERE id = $1',
+    'SELECT id, first_name, username, timezone, streak_freezes, deadline_reminder_enabled, reminder_lead_hours FROM users WHERE id = $1',
     [id]
   )
   return rows[0] ?? null
@@ -28,11 +28,23 @@ export async function getUserById(id) {
 export async function setDeadlineReminderEnabled(id, enabled) {
   const { rows } = await pool.query(
     `UPDATE users SET deadline_reminder_enabled = $2 WHERE id = $1
-     RETURNING id, first_name, username, timezone, streak_freezes, deadline_reminder_enabled`,
+     RETURNING id, first_name, username, timezone, streak_freezes, deadline_reminder_enabled, reminder_lead_hours`,
     [id, enabled]
   )
   return rows[0] ?? null
 }
+
+export async function setReminderLeadHours(id, hours) {
+  const allowed = [1, 2, 3, 6, 12, 24]
+  if (!allowed.includes(hours)) throw new Error('Invalid reminder lead time')
+  const { rows } = await pool.query(
+    `UPDATE users SET reminder_lead_hours = $2 WHERE id = $1
+     RETURNING id, first_name, username, timezone, streak_freezes, deadline_reminder_enabled, reminder_lead_hours`,
+    [id, hours]
+  )
+  return rows[0] ?? null
+}
+
 
 export async function listHabitsForUser(userId) {
   const { rows } = await pool.query(
@@ -236,7 +248,7 @@ export async function getPendingDeadlineReminders() {
        AND EXTRACT(EPOCH FROM (
              date_trunc('day', now() AT TIME ZONE u.timezone) + INTERVAL '1 day'
              - (now() AT TIME ZONE u.timezone)
-           )) / 3600.0 <= COALESCE(h.deadline_hours, 3)`
+           )) / 3600.0 <= COALESCE(u.reminder_lead_hours, 3)`
   )
   return rows
 }

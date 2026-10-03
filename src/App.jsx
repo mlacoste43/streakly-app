@@ -3,13 +3,12 @@ import MainScreen from './screens/MainScreen.jsx'
 import HabitDetailScreen from './screens/HabitDetailScreen.jsx'
 import CreateHabitScreen from './screens/CreateHabitScreen.jsx'
 import SettingsScreen from './screens/SettingsScreen.jsx'
-import ProfileScreen from './screens/ProfileScreen.jsx'
 import TeamScreen from './screens/TeamScreen.jsx'
 import { getUser } from './telegram.js'
 import { api } from './api.js'
 
 export default function App() {
-  // simple stack-less navigation: 'main' | 'detail' | 'team' | 'create' | 'edit' | 'profile' | 'settings'
+  // simple stack-less navigation: 'main' | 'detail' | 'team' | 'create' | 'edit' | 'settings'
   const [screen, setScreen] = useState('main')
   const [selectedHabit, setSelectedHabit] = useState(null)
 
@@ -87,10 +86,6 @@ export default function App() {
     )
   }
 
-  if (screen === 'profile') {
-    return <ProfileScreen onBack={() => setScreen('main')} user={getUser()} />
-  }
-
   if (screen === 'settings') {
     return <SettingsScreen onBack={() => setScreen('main')} user={getUser()} />
   }
@@ -99,7 +94,6 @@ export default function App() {
     <MainScreen
       onOpenHabit={openHabit}
       onCreateHabit={() => setScreen('create')}
-      onOpenProfile={() => setScreen('profile')}
       onOpenSettings={() => setScreen('settings')}
     />
   )

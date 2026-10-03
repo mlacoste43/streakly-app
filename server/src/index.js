@@ -5,7 +5,7 @@ import { telegramAuth } from './middleware/telegramAuth.js'
 import { habitsRouter } from './routes/habits.js'
 import { scheduleStreakReset, runStreakReset } from './cron/resetStreaks.js'
 import { scheduleDeadlineReminders, runDeadlineReminders } from './cron/deadlineReminders.js'
-import { getUserById, setDeadlineReminderEnabled } from './data/store.js'
+import { getUserById, setDeadlineReminderEnabled, setReminderLeadHours } from './data/store.js'
 
 const app = express()
 const PORT = process.env.PORT ?? 3000
@@ -33,12 +33,16 @@ app.get('/api/me', async (req, res, next) => {
 })
 app.patch('/api/me', async (req, res, next) => {
   try {
-    const { deadlineReminderEnabled } = req.body ?? {}
-    if (typeof deadlineReminderEnabled !== 'boolean') {
-      return res.status(400).json({ error: 'deadlineReminderEnabled must be a boolean' })
+    const { deadlineReminderEnabled, reminderLeadHours } = req.body ?? {}
+    if (typeof deadlineReminderEnabled === 'boolean') {
+      const user = await setDeadlineReminderEnabled(req.telegramUser.id, deadlineReminderEnabled)
+      return res.json({ user })
     }
-    const user = await setDeadlineReminderEnabled(req.telegramUser.id, deadlineReminderEnabled)
-    res.json({ user })
+    if (Number.isInteger(reminderLeadHours)) {
+      const user = await setReminderLeadHours(req.telegramUser.id, reminderLeadHours)
+      return res.json({ user })
+    }
+    return res.status(400).json({ error: 'Provide deadlineReminderEnabled or reminderLeadHours' })
   } catch (err) {
     next(err)
   }
