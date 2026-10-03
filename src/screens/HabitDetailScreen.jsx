@@ -51,6 +51,14 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const alreadyDoneToday = checkedDates.includes(todayStr)
 
+  // Круг показывает прогресс текущего стрика относительно личного рекорда.
+  // Например, 12 из 19 дней = примерно 63% заполнения круга.
+  const currentDays = Math.max(0, Number(habit.days) || 0)
+  const recordDays = Math.max(currentDays, Number(habit.record) || 0)
+  const progress = recordDays > 0
+    ? Math.min(100, Math.round((currentDays / recordDays) * 100))
+    : 0
+
   return (
     <div style={{ padding: 16, maxWidth: 480, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
@@ -79,17 +87,28 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
             width: 120,
             height: 120,
             borderRadius: '50%',
-            border: '8px solid rgba(255,255,255,0.3)',
+            background: `conic-gradient(#FAEEDA ${progress * 3.6}deg, rgba(255,255,255,0.3) 0deg)`,
             margin: '0 auto 12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            display: 'grid',
+            placeItems: 'center',
+            transition: 'background 0.5s ease',
           }}
         >
-          <div>
-            <IconFlame size={26} color="#FAEEDA" style={{ margin: '0 auto' }} />
+          <div
+            style={{
+              width: 104,
+              height: 104,
+              borderRadius: '50%',
+              background: 'var(--duo-icon)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <IconFlame size={26} color="#FAEEDA" />
             <p style={{ fontSize: 30, fontWeight: 500, margin: '2px 0 0', color: '#FAEEDA', lineHeight: 1 }}>
-              {habit.days}
+              {currentDays}
             </p>
           </div>
         </div>
