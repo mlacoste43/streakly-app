@@ -3,6 +3,7 @@ import {
   listHabitsForUser, addHabit, findHabit, checkIn, getTeamMembers, getHabitMembers,
   getCheckInsForMonth, getFrozenDatesForMonth, updateHabit, deleteHabit,
 } from '../data/store.js'
+import { notifyUser } from '../telegramBot.js'
 
 export const habitsRouter = Router()
 
@@ -126,6 +127,13 @@ habitsRouter.post('/:id/checkin', async (req, res, next) => {
     const habit = await checkIn(req.params.id, req.telegramUser.id)
     if (!habit) return res.status(404).json({ error: 'not found' })
     res.json({ habit })
+
+    // fire-and-forget: a failed notification shouldn't fail the check-in
+    // itself, so this runs after the response is already sent
+    notifyUser(
+      req.telegramUser.id,
+      `✅ Отметил «${habit.title}» — стрик <b>${habit.days}</b> 🔥`
+    ).catch((err) => console.error('Failed to send check-in notification', err))
   } catch (err) {
     next(err)
   }

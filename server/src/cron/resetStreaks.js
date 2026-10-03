@@ -1,53 +1,25 @@
 import cron from 'node-cron'
 import { resetMissedStreaks } from '../data/store.js'
 
-let resetRunning = false
-
 export async function runStreakReset() {
-  if (resetRunning) return { broken: [], frozen: [] }
-
-  resetRunning = true
-  try {
-    const { broken, frozen } = await resetMissedStreaks()
-
-    if (broken.length > 0) {
-      console.log(
-        `Streak reset: broke ${broken.length} streak(s) ->`,
-        broken.map((h) => h.title).join(', ')
-      )
-    }
-
-    if (frozen.length > 0) {
-      console.log(
-        `Streak reset: saved ${frozen.length} streak(s) with a freeze ->`,
-        frozen.map((h) => h.title).join(', ')
-      )
-    }
-
-    if (broken.length === 0 && frozen.length === 0) {
-      console.log('Streak reset: nothing to break')
-    }
-
-    return { broken, frozen }
-  } finally {
-    resetRunning = false
+  const { broken, frozen } = await resetMissedStreaks()
+  if (broken.length > 0) {
+    console.log(`Streak reset: broke ${broken.length} streak(s) ->`, broken.map((h) => h.title).join(', '))
   }
+  if (frozen.length > 0) {
+    console.log(`Streak reset: saved ${frozen.length} streak(s) with a freeze ->`, frozen.map((h) => h.title).join(', '))
+  }
+  if (broken.length === 0 && frozen.length === 0) {
+    console.log('Streak reset: nothing to break')
+  }
+  return { broken, frozen }
 }
 
-/*
- * IMPORTANT:
- * node-cron only runs while the Node process is actually alive.
- * Therefore this is a safety net, not the only mechanism.
- *
- * We run every 15 minutes instead of once at 00:05 because users can
- * have different timezones and the server timezone is not their timezone.
- */
+// Runs once a day at 00:05 server time, per-habit day boundaries follow
+// the habit owner's own timezone (see store.js).
 export function scheduleStreakReset() {
-  cron.schedule('*/15 * * * *', () => {
-    runStreakReset().catch((err) => {
-      console.error('Streak reset failed', err)
-    })
+  cron.schedule('5 0 * * *', () => {
+    runStreakReset().catch((err) => console.error('Streak reset failed', err))
   })
-
-  console.log('Streak reset job scheduled every 15 minutes')
+  console.log('Streak reset job scheduled for 00:05 daily')
 }

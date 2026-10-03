@@ -22,38 +22,6 @@ app.get('/api/health', (req, res) => res.json({ ok: true }))
 // which lets requests through with no initData at all (local dev only).
 app.use('/api', telegramAuth(BOT_TOKEN, { allowDevBypass: ALLOW_DEV_AUTH }))
 
-// Safety net for sleeping/free hosting:
-// if the server missed the cron tick while it was asleep, check streaks
-// as soon as a real user request reaches the backend.
-let lastRequestResetAt = 0
-let requestResetPromise = null
-const RESET_CHECK_INTERVAL_MS = 15 * 60 * 1000
-
-async function resetStreaksOnRequest() {
-  const now = Date.now()
-  if (now - lastRequestResetAt < RESET_CHECK_INTERVAL_MS) return
-
-  if (!requestResetPromise) {
-    requestResetPromise = runStreakReset()
-      .catch((err) => console.error('Request streak reset failed', err))
-      .finally(() => {
-        lastRequestResetAt = Date.now()
-        requestResetPromise = null
-      })
-  }
-
-  await requestResetPromise
-}
-
-app.use('/api', async (req, res, next) => {
-  try {
-    await resetStreaksOnRequest()
-    next()
-  } catch (err) {
-    next(err)
-  }
-})
-
 app.get('/api/me', async (req, res, next) => {
   try {
     const user = await getUserById(req.telegramUser.id)
@@ -90,7 +58,5 @@ app.listen(PORT, () => {
   if (!process.env.DATABASE_URL) {
     console.warn('WARNING: DATABASE_URL is not set - database queries will fail.')
   }
-  // Run once immediately so a missed cron tick is caught after restart/wake.
-  runStreakReset().catch((err) => console.error('Initial streak reset failed', err))
   scheduleStreakReset()
 })
