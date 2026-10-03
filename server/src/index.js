@@ -6,6 +6,7 @@ import { habitsRouter } from './routes/habits.js'
 import { scheduleStreakReset, runStreakReset } from './cron/resetStreaks.js'
 import { scheduleDeadlineReminders, runDeadlineReminders } from './cron/deadlineReminders.js'
 import { getUserById, setDeadlineReminderEnabled, setReminderLeadHours } from './data/store.js'
+import { ensureDatabaseSchema } from './db.js'
 
 const app = express()
 const PORT = process.env.PORT ?? 3000
@@ -77,14 +78,25 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' })
 })
 
-app.listen(PORT, () => {
-  console.log(`Streakly API listening on http://localhost:${PORT}`)
+async function startServer() {
+  try {
+    await ensureDatabaseSchema()
+  } catch (err) {
+    console.error('Database schema initialization failed:', err)
+    process.exit(1)
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Streakly API listening on http://localhost:${PORT}`)
   if (!BOT_TOKEN) {
     console.warn('WARNING: TELEGRAM_BOT_TOKEN is not set - all /api requests will be rejected. Copy .env.example to .env and fill it in.')
   }
   if (!process.env.DATABASE_URL) {
     console.warn('WARNING: DATABASE_URL is not set - database queries will fail.')
   }
-  scheduleStreakReset()
-  scheduleDeadlineReminders()
-})
+    scheduleStreakReset()
+    scheduleDeadlineReminders()
+  })
+}
+
+startServer()
