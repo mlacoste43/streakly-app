@@ -16,12 +16,14 @@ export default function SettingsScreen({ onBack, user }) {
     language, toggleLanguage,
     deadlineReminder, setDeadlineReminder,
     partnerAlert, setPartnerAlert,
-    reminderLeadHours,
+    reminderLeadHours, setReminderLeadHours,
     t,
   } = useSettings()
 
   const [timezone, setTimezone] = useState(browserTimezone)
   const [streakFreezes, setStreakFreezes] = useState(null)
+  const [showReminderPicker, setShowReminderPicker] = useState(false)
+  const reminderOptions = [1, 2, 3, 6, 12, 24]
 
   useEffect(() => {
     // every request already sends X-Timezone (see src/api.js), so by the
@@ -69,7 +71,13 @@ export default function SettingsScreen({ onBack, user }) {
           checked={deadlineReminder}
           onToggle={() => setDeadlineReminder(!deadlineReminder)}
         />
-        <Row icon={IconClock} label={t('reminderLeadTime')} value={`${reminderLeadHours} ч`} chevron />
+        <Row
+          icon={IconClock}
+          label={t('reminderLeadTime')}
+          value={`${reminderLeadHours} ч`}
+          chevron
+          onClick={() => setShowReminderPicker(true)}
+        />
         <Row
           icon={IconUsers}
           label={t('partnerAlert')}
@@ -95,6 +103,91 @@ export default function SettingsScreen({ onBack, user }) {
       >
         {t('deleteAccount')}
       </button>
+
+      {showReminderPicker && (
+        <div
+          onClick={() => setShowReminderPicker(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.35)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: 480,
+              background: 'var(--surface)',
+              borderRadius: '20px 20px 0 0',
+              padding: '18px 16px 24px',
+              boxSizing: 'border-box',
+              boxShadow: '0 -8px 30px rgba(0,0,0,0.15)',
+            }}
+          >
+            <div style={{
+              textAlign: 'center',
+              fontSize: 16,
+              fontWeight: 600,
+              marginBottom: 14,
+            }}>
+              {t('reminderLeadTime')}
+            </div>
+
+            {reminderOptions.map((hours) => (
+              <button
+                key={hours}
+                type="button"
+                onClick={() => {
+                  setReminderLeadHours(hours)
+                  setShowReminderPicker(false)
+                }}
+                style={{
+                  width: '100%',
+                  padding: '13px 12px',
+                  border: 'none',
+                  borderRadius: 12,
+                  background: hours === reminderLeadHours
+                    ? 'var(--primary-soft, rgba(46, 160, 67, 0.12))'
+                    : 'transparent',
+                  color: 'var(--text)',
+                  fontSize: 15,
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  marginBottom: 4,
+                }}
+              >
+                {hours} {hours === 1 ? 'час' : hours < 5 ? 'часа' : 'часов'}
+                {hours === reminderLeadHours && (
+                  <span style={{ float: 'right', color: 'var(--primary)' }}>✓</span>
+                )}
+              </button>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => setShowReminderPicker(false)}
+              style={{
+                width: '100%',
+                marginTop: 8,
+                padding: 13,
+                border: '1px solid var(--border)',
+                borderRadius: 12,
+                background: 'transparent',
+                color: 'var(--text)',
+                fontSize: 15,
+                cursor: 'pointer',
+              }}
+            >
+              {language === 'ru' ? 'Отмена' : 'Cancel'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

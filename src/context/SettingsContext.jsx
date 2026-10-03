@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { t as translate } from '../i18n.js'
+import { api } from '../api.js'
 
 const SettingsContext = createContext(null)
 
@@ -47,6 +48,12 @@ export function SettingsProvider({ children }) {
     toggleLanguage: () => update({ language: settings.language === 'ru' ? 'en' : 'ru' }),
     setDeadlineReminder: (v) => update({ deadlineReminder: v }),
     setPartnerAlert: (v) => update({ partnerAlert: v }),
+    setReminderLeadHours: (hours) => {
+      update({ reminderLeadHours: hours })
+      api.patchMe({ reminderLeadHours: hours }).catch((err) => {
+        console.error('Failed to save reminder lead time:', err)
+      })
+    },
     t: (key) => translate(key, settings.language),
   }
 
