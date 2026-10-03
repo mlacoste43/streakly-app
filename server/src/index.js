@@ -4,7 +4,8 @@ import cors from 'cors'
 import { telegramAuth } from './middleware/telegramAuth.js'
 import { habitsRouter } from './routes/habits.js'
 import { scheduleStreakReset, runStreakReset } from './cron/resetStreaks.js'
-import { getUserById } from './data/store.js'
+import { scheduleDeadlineReminders, runDeadlineReminders } from './cron/deadlineReminders.js'
+import { getUserById, setDeadlineReminderEnabled } from './data/store.js'
 
 const app = express()
 const PORT = process.env.PORT ?? 3000
@@ -30,6 +31,19 @@ app.get('/api/me', async (req, res, next) => {
     next(err)
   }
 })
+app.patch('/api/me', async (req, res, next) => {
+  try {
+    const { deadlineReminderEnabled } = req.body ?? {}
+    if (typeof deadlineReminderEnabled !== 'boolean') {
+      return res.status(400).json({ error: 'deadlineReminderEnabled must be a boolean' })
+    }
+    const user = await setDeadlineReminderEnabled(req.telegramUser.id, deadlineReminderEnabled)
+    res.json({ user })
+  } catch (err) {
+    next(err)
+  }
+})
+
 app.use('/api/habits', habitsRouter)
 
 // Dev-only: trigger the daily streak-reset job on demand instead of waiting for 00:05.
@@ -38,6 +52,15 @@ if (ALLOW_DEV_AUTH) {
     try {
       const result = await runStreakReset()
       res.json(result)
+    } catch (err) {
+      next(err)
+    }
+  })
+
+  app.post('/api/dev/run-deadline-reminders', async (req, res, next) => {
+    try {
+      const sent = await runDeadlineReminders()
+      res.json({ sent })
     } catch (err) {
       next(err)
     }
@@ -59,4 +82,5 @@ app.listen(PORT, () => {
     console.warn('WARNING: DATABASE_URL is not set - database queries will fail.')
   }
   scheduleStreakReset()
+  scheduleDeadlineReminders()
 })

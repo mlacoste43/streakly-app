@@ -19,8 +19,17 @@ export async function ensureUser(telegramUser, timezone) {
 
 export async function getUserById(id) {
   const { rows } = await pool.query(
-    'SELECT id, first_name, username, timezone, streak_freezes FROM users WHERE id = $1',
+    'SELECT id, first_name, username, timezone, streak_freezes, deadline_reminder_enabled FROM users WHERE id = $1',
     [id]
+  )
+  return rows[0] ?? null
+}
+
+export async function setDeadlineReminderEnabled(id, enabled) {
+  const { rows } = await pool.query(
+    `UPDATE users SET deadline_reminder_enabled = $2 WHERE id = $1
+     RETURNING id, first_name, username, timezone, streak_freezes, deadline_reminder_enabled`,
+    [id, enabled]
   )
   return rows[0] ?? null
 }
@@ -196,6 +205,49 @@ export async function resetMissedStreaks() {
   }
 
   return { broken, frozen }
+}
+
+// Who needs a "deadline soon" nudge right now: for every habit member who
+// (a) hasn't checked in yet today (their own local day), (b) has
+// reminders turned on, (c) hasn't already been reminded today, and
+// (d) is within the habit's reminder window (habits.deadline_hours,
+// defaulting to 3) of their own local midnight.
+//
+// Deliberately per-member, not per-habit-owner: everyone on a shared
+// habit gets their own nudge at the right moment in their own timezone.
+export async function getPendingDeadlineReminders() {
+  const { rows } = await pool.query(
+    `SELECT hm.habit_id, h.title AS habit_title, u.id AS user_id,
+            (now() AT TIME ZONE u.timezone)::date AS local_date
+     FROM habit_members hm
+     JOIN habits h ON h.id = hm.habit_id
+     JOIN users u ON u.id = hm.user_id
+     WHERE u.deadline_reminder_enabled = true
+       AND NOT EXISTS (
+         SELECT 1 FROM check_ins ci
+         WHERE ci.habit_id = hm.habit_id AND ci.user_id = u.id
+           AND ci.checkin_date = (now() AT TIME ZONE u.timezone)::date
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM reminder_sent rs
+         WHERE rs.habit_id = hm.habit_id AND rs.user_id = u.id
+           AND rs.reminder_date = (now() AT TIME ZONE u.timezone)::date
+       )
+       AND EXTRACT(EPOCH FROM (
+             date_trunc('day', now() AT TIME ZONE u.timezone) + INTERVAL '1 day'
+             - (now() AT TIME ZONE u.timezone)
+           )) / 3600.0 <= COALESCE(h.deadline_hours, 3)`
+  )
+  return rows
+}
+
+export async function markReminderSent(habitId, userId, localDate) {
+  await pool.query(
+    `INSERT INTO reminder_sent (habit_id, user_id, reminder_date)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (habit_id, user_id, reminder_date) DO NOTHING`,
+    [habitId, userId, localDate]
+  )
 }
 
 export async function updateHabit(id, { name, type, frequency, breakRule }) {

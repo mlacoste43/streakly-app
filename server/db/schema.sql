@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   username        TEXT,
   timezone        TEXT NOT NULL DEFAULT 'UTC', -- IANA name, e.g. 'Europe/Moscow'; detected client-side
   streak_freezes  INT NOT NULL DEFAULT 2,      -- how many "skip a missed day for free" tokens the user has
+  deadline_reminder_enabled BOOLEAN NOT NULL DEFAULT true, -- "напоминания о дедлайне" toggle in settings
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -55,3 +56,14 @@ CREATE TABLE IF NOT EXISTS freeze_uses (
 );
 
 CREATE INDEX IF NOT EXISTS idx_freeze_uses_habit_date ON freeze_uses(habit_id, freeze_date);
+
+-- One row per (habit, user, local day) once a "deadline soon" reminder has
+-- been sent, so a job that runs every few minutes doesn't spam the same
+-- person about the same habit over and over on the same day.
+CREATE TABLE IF NOT EXISTS reminder_sent (
+  habit_id      INT NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
+  user_id       BIGINT NOT NULL REFERENCES users(id),
+  reminder_date DATE NOT NULL,
+  sent_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (habit_id, user_id, reminder_date)
+);
