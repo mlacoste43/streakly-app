@@ -1,36 +1,7 @@
 import { useEffect, useState } from 'react'
-import { IconArrowLeft, IconFlame, IconCheck, IconClock, IconPencil, IconSnowflake } from '@tabler/icons-react'
+import { IconArrowLeft, IconFlame, IconCheck, IconClock, IconPencil } from '@tabler/icons-react'
 import { api } from '../api.js'
-
-const weekLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
-
-// Builds a Mon-first calendar grid for the given month, marking each day
-// as done / frozen / missed / future based on real data from the API.
-function buildMonthGrid(year, month, checkedDates, frozenDates) {
-  const checkedSet = new Set(checkedDates)
-  const frozenSet = new Set(frozenDates)
-  const firstOfMonth = new Date(year, month - 1, 1)
-  const daysInMonth = new Date(year, month, 0).getDate()
-  // JS getDay(): 0=Sun..6=Sat -> convert to Mon-first (0=Mon..6=Sun)
-  const leadingBlanks = (firstOfMonth.getDay() + 6) % 7
-
-  const todayStr = new Date().toISOString().slice(0, 10)
-
-  const cells = []
-  for (let i = 0; i < leadingBlanks; i++) cells.push(null)
-
-  for (let day = 1; day <= daysInMonth; day++) {
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    let status
-    if (dateStr > todayStr) status = 'future'
-    else if (checkedSet.has(dateStr)) status = 'done'
-    else if (frozenSet.has(dateStr)) status = 'frozen'
-    else status = 'missed'
-    cells.push({ day, status })
-  }
-
-  return cells
-}
+import MonthCalendar, { getCurrentMonthKey } from '../components/MonthCalendar.jsx'
 
 export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) {
   const [checkedDates, setCheckedDates] = useState([])
@@ -39,11 +10,7 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
   const [loading, setLoading] = useState(true)
   const [checkingIn, setCheckingIn] = useState(false)
 
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1
-  const monthKey = `${year}-${month}`
-  const grid = buildMonthGrid(year, month, checkedDates, frozenDates)
+  const monthKey = getCurrentMonthKey()
 
   useEffect(() => {
     let cancelled = false
@@ -52,10 +19,10 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
       api.getCheckIns(habit.id, monthKey),
       habit.type === 'duo' ? api.getMembers(habit.id) : Promise.resolve({ members: [] }),
     ])
-      .then(([checkinsRes, membersRes]) => {
+      .then(([checkinResponses, membersRes]) => {
         if (cancelled) return
-        setCheckedDates(checkinsRes.dates)
-        setFrozenDates(checkinsRes.frozenDates ?? [])
+        setCheckedDates([...new Set(checkinResponses?.dates ?? [])])
+        setFrozenDates([...new Set(checkinResponses?.frozenDates ?? [])])
         setMembers(membersRes.members)
       })
       .catch(() => {})
@@ -63,13 +30,14 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
     return () => {
       cancelled = true
     }
-  }, [habit.id])
+  }, [habit.id, monthKey])
 
   async function handleCheckIn() {
     setCheckingIn(true)
     try {
       const { habit: updated } = await api.checkIn(habit.id)
-      const todayStr = new Date().toISOString().slice(0, 10)
+      const today = new Date()
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
       setCheckedDates((prev) => (prev.includes(todayStr) ? prev : [...prev, todayStr]))
       onUpdated?.(updated)
     } catch (err) {
@@ -79,8 +47,17 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
     }
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const today = new Date()
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const alreadyDoneToday = checkedDates.includes(todayStr)
+
+  // Круг показывает прогресс текущего стрика относительно личного рекорда.
+  // Например, 12 из 19 дней = примерно 63% заполнения круга.
+  const currentDays = Math.max(0, Number(habit.days) || 0)
+  const recordDays = Math.max(currentDays, Number(habit.record) || 0)
+  const progress = recordDays > 0
+    ? Math.min(100, Math.round((currentDays / recordDays) * 100))
+    : 0
 
   return (
     <div style={{ padding: 16, maxWidth: 480, margin: '0 auto' }}>
@@ -98,7 +75,8 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
 
       <div
         style={{
-          background: 'var(--duo-icon)',
+          background: 'var(--surface)',
+          border: '2px solid var(--border)',
           borderRadius: 20,
           padding: '1.5rem 1rem',
           marginBottom: 16,
@@ -110,21 +88,32 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
             width: 120,
             height: 120,
             borderRadius: '50%',
-            border: '8px solid rgba(255,255,255,0.3)',
+            background: `conic-gradient(var(--primary) ${progress * 3.6}deg, var(--border) 0deg)`,
             margin: '0 auto 12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            display: 'grid',
+            placeItems: 'center',
+            transition: 'background 0.5s ease',
           }}
         >
-          <div>
-            <IconFlame size={26} color="#FAEEDA" style={{ margin: '0 auto' }} />
-            <p style={{ fontSize: 30, fontWeight: 500, margin: '2px 0 0', color: '#FAEEDA', lineHeight: 1 }}>
-              {habit.days}
+          <div
+            style={{
+              width: 104,
+              height: 104,
+              borderRadius: '50%',
+              background: 'var(--surface)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <IconFlame size={26} color="var(--primary)" />
+            <p style={{ fontSize: 30, fontWeight: 500, margin: '2px 0 0', color: 'var(--text)', lineHeight: 1 }}>
+              {currentDays}
             </p>
           </div>
         </div>
-        <p style={{ fontSize: 13, color: '#F3D9AD', margin: 0 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
           дней подряд · рекорд {habit.record}
         </p>
       </div>
@@ -153,45 +142,11 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 8px', fontWeight: 500 }}>
         Этот месяц
       </p>
-      <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '14px 12px', marginBottom: 16 }}>
         {loading ? (
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>Загрузка…</p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, textAlign: 'center' }}>
-            {weekLabels.map((d) => (
-              <span key={d} style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{d}</span>
-            ))}
-            {grid.map((cell, i) => {
-              if (!cell) return <div key={i} />
-              const { status } = cell
-              const bg =
-                status === 'done' ? 'var(--duo-border)'
-                : status === 'frozen' ? '#BEE3F8'
-                : status === 'missed' ? 'var(--danger-bg)'
-                : 'transparent'
-              const border =
-                status === 'missed' ? '2px solid var(--danger-border)'
-                : status === 'future' ? '2px dashed var(--border)'
-                : 'none'
-              return (
-                <div
-                  key={i}
-                  style={{
-                    aspectRatio: '1',
-                    borderRadius: 8,
-                    background: bg,
-                    border,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {status === 'done' && <IconFlame size={12} color="var(--duo-fg)" />}
-                  {status === 'frozen' && <IconSnowflake size={12} color="#0C4A6E" />}
-                </div>
-              )
-            })}
-          </div>
+          <MonthCalendar checkedDates={checkedDates} frozenDates={frozenDates} />
         )}
       </div>
 

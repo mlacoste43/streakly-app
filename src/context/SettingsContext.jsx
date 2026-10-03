@@ -47,7 +47,6 @@ export function SettingsProvider({ children }) {
     toggleLanguage: () => update({ language: settings.language === 'ru' ? 'en' : 'ru' }),
     setDeadlineReminder: (v) => update({ deadlineReminder: v }),
     setPartnerAlert: (v) => update({ partnerAlert: v }),
-    setReminderLeadHours: (v) => update({ reminderLeadHours: v }),
     t: (key) => translate(key, settings.language),
   }
 

@@ -16,7 +16,7 @@ export default function SettingsScreen({ onBack, user }) {
     language, toggleLanguage,
     deadlineReminder, setDeadlineReminder,
     partnerAlert, setPartnerAlert,
-    reminderLeadHours, setReminderLeadHours,
+    reminderLeadHours,
     t,
   } = useSettings()
 
@@ -29,40 +29,8 @@ export default function SettingsScreen({ onBack, user }) {
     api.getMe().then((res) => {
       if (res.user?.timezone) setTimezone(res.user.timezone)
       if (res.user?.streak_freezes != null) setStreakFreezes(res.user.streak_freezes)
-      // the backend is the source of truth for this one, since the reminder
-      // cron job reads it directly from the DB - sync it into local state
-      if (res.user?.deadline_reminder_enabled != null && res.user.deadline_reminder_enabled !== deadlineReminder) {
-        setDeadlineReminder(res.user.deadline_reminder_enabled)
-      }
-      if (res.user?.reminder_lead_hours != null && res.user.reminder_lead_hours !== reminderLeadHours) {
-        setReminderLeadHours(res.user.reminder_lead_hours)
-      }
     }).catch(() => {})
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  async function handleReminderLeadChange(event) {
-    const next = Number(event.target.value)
-    const previous = reminderLeadHours
-    setReminderLeadHours(next)
-    try {
-      await api.updateMe({ reminderLeadHours: next })
-    } catch (err) {
-      setReminderLeadHours(previous)
-      alert(err.message)
-    }
-  }
-
-  async function handleToggleDeadlineReminder() {
-    const next = !deadlineReminder
-    setDeadlineReminder(next) // optimistic
-    try {
-      await api.updateMe({ deadlineReminderEnabled: next })
-    } catch (err) {
-      setDeadlineReminder(!next) // revert on failure
-      alert(err.message)
-    }
-  }
 
   return (
     <div style={{ padding: 16, maxWidth: 480, margin: '0 auto' }}>
@@ -71,30 +39,6 @@ export default function SettingsScreen({ onBack, user }) {
           <IconArrowLeft size={20} color="var(--text-secondary)" />
         </button>
         <p style={{ fontSize: 16, fontWeight: 500, margin: 0 }}>{t('settings')}</p>
-      </div>
-
-      <div
-        style={{
-          background: 'var(--surface)', borderRadius: 16, padding: 16, marginBottom: 16,
-          display: 'flex', alignItems: 'center', gap: 12, border: '1px solid var(--border)',
-        }}
-      >
-        <div
-          style={{
-            width: 48, height: 48, borderRadius: '50%', background: 'var(--team-icon)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 18, fontWeight: 500, color: '#fff', flexShrink: 0,
-          }}
-        >
-          {(user?.first_name ?? 'Т')[0]}
-        </div>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 14, fontWeight: 500, margin: 0 }}>{user?.first_name ?? 'Тимофей'}</p>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 0' }}>
-            @{user?.username ?? 'timofey_streaks'}
-          </p>
-        </div>
-        <IconChevronRight size={16} color="var(--text-secondary)" />
       </div>
 
       <SectionLabel>{t('view')}</SectionLabel>
@@ -123,33 +67,9 @@ export default function SettingsScreen({ onBack, user }) {
           label={t('deadlineReminder')}
           toggle
           checked={deadlineReminder}
-          onToggle={handleToggleDeadlineReminder}
+          onToggle={() => setDeadlineReminder(!deadlineReminder)}
         />
-        <div
-          style={{
-            padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: 10,
-            borderBottom: '1px solid var(--border)',
-          }}
-        >
-          <IconClock size={18} color="var(--text-secondary)" />
-          <label htmlFor="reminder-lead-hours" style={{ fontSize: 14, margin: 0, flex: 1 }}>
-            {t('reminderLeadTime')}
-          </label>
-          <select
-            id="reminder-lead-hours"
-            value={reminderLeadHours}
-            onChange={handleReminderLeadChange}
-            style={{
-              appearance: 'none', background: 'var(--surface)', color: 'var(--text-secondary)',
-              border: '1px solid var(--border)', borderRadius: 10, padding: '7px 28px 7px 10px',
-              fontSize: 13, cursor: 'pointer', outline: 'none',
-            }}
-          >
-            {[1, 2, 3, 6, 12, 24].map((hours) => (
-              <option key={hours} value={hours}>{hours} ч</option>
-            ))}
-          </select>
-        </div>
+        <Row icon={IconClock} label={t('reminderLeadTime')} value={`${reminderLeadHours} ч`} chevron />
         <Row
           icon={IconUsers}
           label={t('partnerAlert')}
@@ -159,22 +79,6 @@ export default function SettingsScreen({ onBack, user }) {
         />
         <Row icon={IconWorld} label={t('timezone')} value={timezone} last />
       </Group>
-
-      <SectionLabel>{t('streaks')}</SectionLabel>
-      <div
-        style={{
-          background: 'var(--duo-bg)', border: '2px solid var(--duo-border)', borderRadius: 16,
-          marginBottom: 16, overflow: 'hidden',
-        }}
-      >
-        <div style={{ padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <IconSnowflake size={18} color="var(--duo-icon)" />
-          <p style={{ fontSize: 14, margin: 0, flex: 1, color: 'var(--duo-fg)' }}>{t('streakFreezes')}</p>
-          <span style={{ fontSize: 13, color: 'var(--duo-icon)', fontWeight: 500 }}>
-            {streakFreezes ?? '…'} {t('available')}
-          </span>
-        </div>
-      </div>
 
       <SectionLabel>{t('privacySupport')}</SectionLabel>
       <Group>
