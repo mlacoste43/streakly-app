@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { IconArrowLeft, IconFlame, IconCheck, IconClock, IconPencil } from '@tabler/icons-react'
 import { api } from '../api.js'
-import WeekCalendar, { getCurrentWeekMonthKeys } from '../components/WeekCalendar.jsx'
+import MonthCalendar, { getCurrentMonthKey } from '../components/MonthCalendar.jsx'
 
 export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) {
   const [checkedDates, setCheckedDates] = useState([])
@@ -10,19 +10,19 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
   const [loading, setLoading] = useState(true)
   const [checkingIn, setCheckingIn] = useState(false)
 
-  const monthKeys = getCurrentWeekMonthKeys()
+  const monthKey = getCurrentMonthKey()
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     Promise.all([
-      Promise.all(monthKeys.map((month) => api.getCheckIns(habit.id, month))),
+      api.getCheckIns(habit.id, monthKey),
       habit.type === 'duo' ? api.getMembers(habit.id) : Promise.resolve({ members: [] }),
     ])
       .then(([checkinResponses, membersRes]) => {
         if (cancelled) return
-        setCheckedDates([...new Set(checkinResponses.flatMap((r) => r.dates ?? []))])
-        setFrozenDates([...new Set(checkinResponses.flatMap((r) => r.frozenDates ?? []))])
+        setCheckedDates([...new Set(checkinResponses?.dates ?? [])])
+        setFrozenDates([...new Set(checkinResponses?.frozenDates ?? [])])
         setMembers(membersRes.members)
       })
       .catch(() => {})
@@ -30,7 +30,7 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
     return () => {
       cancelled = true
     }
-  }, [habit.id])
+  }, [habit.id, monthKey])
 
   async function handleCheckIn() {
     setCheckingIn(true)
@@ -120,13 +120,13 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
       )}
 
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 8px', fontWeight: 500 }}>
-        Эта неделя
+        Этот месяц
       </p>
       <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '14px 12px', marginBottom: 16 }}>
         {loading ? (
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>Загрузка…</p>
         ) : (
-          <WeekCalendar checkedDates={checkedDates} frozenDates={frozenDates} />
+          <MonthCalendar checkedDates={checkedDates} frozenDates={frozenDates} />
         )}
       </div>
 

@@ -37,3 +37,22 @@
 .week-calendar-compact{margin-top:14px}
 .week-calendar-compact .week-day-box{max-width:39px;border-radius:11px}
 .week-calendar-compact .week-day-label{font-size:8px}
+
+/* Full month calendar on habit detail */
+.month-calendar{width:100%}
+.month-calendar-header{display:flex;justify-content:center;align-items:center;margin-bottom:12px;color:var(--text);font-size:14px;font-weight:850;text-transform:capitalize}
+.month-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
+.month-weekday{display:flex;align-items:center;justify-content:center;color:var(--text-secondary);font-size:9px;font-weight:800;text-transform:lowercase;height:18px}
+.month-day{aspect-ratio:1;min-width:0;border-radius:10px;background:var(--border);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:850;border:2px solid transparent}
+.month-day.empty{background:transparent;border-color:transparent}
+.month-day.done{background:#dff5c9;color:#4eaa32}
+.month-day.frozen{background:#dff1fb;color:#28759b}
+.month-day.missed{background:#f0f1ed;color:#9ca39b}
+.month-day.future{background:#f7f8f5;color:#aeb4ad}
+.month-day.today{border-color:var(--primary);background:var(--surface);color:var(--text)}
+.month-day.done.today{background:#dff5c9;color:#4eaa32}
+.month-day.frozen.today{background:#dff1fb;color:#28759b}
+[data-theme='dark'] .month-day.done{background:#294625;color:#9be27a}
+[data-theme='dark'] .month-day.frozen{background:#213d4b;color:#8ed6f2}
+[data-theme='dark'] .month-day.missed{background:#303732;color:#9ca89e}
+[data-theme='dark'] .month-day.future{background:#252c28;color:#737e76}
