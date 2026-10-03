@@ -75,7 +75,8 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
 
       <div
         style={{
-          background: 'var(--duo-icon)',
+          background: 'var(--surface)',
+          border: '2px solid var(--border)',
           borderRadius: 20,
           padding: '1.5rem 1rem',
           marginBottom: 16,
@@ -87,7 +88,7 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
             width: 120,
             height: 120,
             borderRadius: '50%',
-            background: `conic-gradient(#FAEEDA ${progress * 3.6}deg, rgba(255,255,255,0.3) 0deg)`,
+            background: `conic-gradient(var(--primary) ${progress * 3.6}deg, var(--border) 0deg)`,
             margin: '0 auto 12px',
             display: 'grid',
             placeItems: 'center',
@@ -99,20 +100,20 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
               width: 104,
               height: 104,
               borderRadius: '50%',
-              background: 'var(--duo-icon)',
+              background: 'var(--surface)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <IconFlame size={26} color="#FAEEDA" />
-            <p style={{ fontSize: 30, fontWeight: 500, margin: '2px 0 0', color: '#FAEEDA', lineHeight: 1 }}>
+            <IconFlame size={26} color="var(--primary)" />
+            <p style={{ fontSize: 30, fontWeight: 500, margin: '2px 0 0', color: 'var(--text)', lineHeight: 1 }}>
               {currentDays}
             </p>
           </div>
         </div>
-        <p style={{ fontSize: 13, color: '#F3D9AD', margin: 0 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
           дней подряд · рекорд {habit.record}
         </p>
       </div>
