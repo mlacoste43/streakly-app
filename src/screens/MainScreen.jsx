@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { IconFlame, IconPlus, IconRun, IconLanguage, IconBook, IconUsers } from '@tabler/icons-react'
 import StreakCard from '../components/StreakCard.jsx'
 import { api } from '../api.js'
+import { getCurrentWeekMonthKeys } from '../components/WeekCalendar.jsx'
 import { useSettings } from '../context/SettingsContext.jsx'
 
 const ICONS = { run: IconRun, language: IconLanguage, book: IconBook, users: IconUsers }
@@ -13,11 +14,38 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
   const [error, setError] = useState(null)
   const [tab, setTab] = useState('all')
   const [checkingId, setCheckingId] = useState(null)
+  const [calendarData, setCalendarData] = useState({})
 
   useEffect(() => {
     let active = true
     api.getHabits()
-      .then((data) => { if (active) setHabits(data.habits ?? []) })
+      .then(async (data) => {
+        const loadedHabits = data.habits ?? []
+        if (!active) return
+        setHabits(loadedHabits)
+
+        const monthKeys = getCurrentWeekMonthKeys()
+        const results = await Promise.all(
+          loadedHabits.map(async (habit) => {
+            try {
+              const responses = await Promise.all(
+                monthKeys.map((month) => api.getCheckIns(habit.id, month))
+              )
+              return [
+                habit.id,
+                {
+                  dates: [...new Set(responses.flatMap((r) => r.dates ?? []))],
+                  frozenDates: [...new Set(responses.flatMap((r) => r.frozenDates ?? []))],
+                },
+              ]
+            } catch {
+              return [habit.id, { dates: [], frozenDates: [] }]
+            }
+          })
+        )
+
+        if (active) setCalendarData(Object.fromEntries(results))
+      })
       .catch((err) => { if (active) setError(err.message) })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
@@ -29,6 +57,16 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
     try {
       const { habit: updated } = await api.checkIn(habit.id)
       setHabits((prev) => prev.map((h) => h.id === updated.id ? updated : h))
+
+      const today = new Date()
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+      setCalendarData((prev) => ({
+        ...prev,
+        [updated.id]: {
+          ...(prev[updated.id] ?? {}),
+          dates: [...new Set([...(prev[updated.id]?.dates ?? []), todayStr])],
+        },
+      }))
     } catch (err) {
       alert(err.message)
     } finally {
@@ -87,7 +125,7 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
           {error && <div className="card-ng status-card error" role="alert">{t('loadError')}: {error}</div>}
           {!loading && !error && visible.length === 0 && <div className="card-ng status-card">{tab === 'together' ? t('emptyTogether') : t('emptyHabits')}</div>}
           <div className="habits-grid">
-            {visible.map((h) => <StreakCard key={h.id} icon={ICONS[h.icon] ?? IconFlame} title={h.title} subtitle={subtitleFor(h)} days={h.days} record={h.record} variant={h.variant} needsCheckIn={Boolean(h.deadlineHours)} checkingIn={checkingId === h.id} people={h.type === 'duo' && h.partner ? [h.partner] : []} onCheckIn={() => handleCheckIn(h)} onOpen={() => onOpenHabit?.(h)} />)}
+            {visible.map((h) => <StreakCard key={h.id} icon={ICONS[h.icon] ?? IconFlame} title={h.title} subtitle={subtitleFor(h)} days={h.days} record={h.record} variant={h.variant} needsCheckIn={Boolean(h.deadlineHours)} checkingIn={checkingId === h.id} people={h.type === 'duo' && h.partner ? [h.partner] : []} checkedDates={calendarData[h.id]?.dates ?? []} frozenDates={calendarData[h.id]?.frozenDates ?? []} onCheckIn={() => handleCheckIn(h)} onOpen={() => onOpenHabit?.(h)} />)}
           </div>
         </section>
       </main>

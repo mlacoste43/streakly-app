@@ -1,36 +1,7 @@
 import { useEffect, useState } from 'react'
-import { IconArrowLeft, IconFlame, IconCheck, IconClock, IconPencil, IconSnowflake } from '@tabler/icons-react'
+import { IconArrowLeft, IconFlame, IconCheck, IconClock, IconPencil } from '@tabler/icons-react'
 import { api } from '../api.js'
-
-const weekLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
-
-// Builds a Mon-first calendar grid for the given month, marking each day
-// as done / frozen / missed / future based on real data from the API.
-function buildMonthGrid(year, month, checkedDates, frozenDates) {
-  const checkedSet = new Set(checkedDates)
-  const frozenSet = new Set(frozenDates)
-  const firstOfMonth = new Date(year, month - 1, 1)
-  const daysInMonth = new Date(year, month, 0).getDate()
-  // JS getDay(): 0=Sun..6=Sat -> convert to Mon-first (0=Mon..6=Sun)
-  const leadingBlanks = (firstOfMonth.getDay() + 6) % 7
-
-  const todayStr = new Date().toISOString().slice(0, 10)
-
-  const cells = []
-  for (let i = 0; i < leadingBlanks; i++) cells.push(null)
-
-  for (let day = 1; day <= daysInMonth; day++) {
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    let status
-    if (dateStr > todayStr) status = 'future'
-    else if (checkedSet.has(dateStr)) status = 'done'
-    else if (frozenSet.has(dateStr)) status = 'frozen'
-    else status = 'missed'
-    cells.push({ day, status })
-  }
-
-  return cells
-}
+import WeekCalendar, { getCurrentWeekMonthKeys } from '../components/WeekCalendar.jsx'
 
 export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) {
   const [checkedDates, setCheckedDates] = useState([])
@@ -39,23 +10,19 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
   const [loading, setLoading] = useState(true)
   const [checkingIn, setCheckingIn] = useState(false)
 
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1
-  const monthKey = `${year}-${month}`
-  const grid = buildMonthGrid(year, month, checkedDates, frozenDates)
+  const monthKeys = getCurrentWeekMonthKeys()
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     Promise.all([
-      api.getCheckIns(habit.id, monthKey),
+      Promise.all(monthKeys.map((month) => api.getCheckIns(habit.id, month))),
       habit.type === 'duo' ? api.getMembers(habit.id) : Promise.resolve({ members: [] }),
     ])
-      .then(([checkinsRes, membersRes]) => {
+      .then(([checkinResponses, membersRes]) => {
         if (cancelled) return
-        setCheckedDates(checkinsRes.dates)
-        setFrozenDates(checkinsRes.frozenDates ?? [])
+        setCheckedDates([...new Set(checkinResponses.flatMap((r) => r.dates ?? []))])
+        setFrozenDates([...new Set(checkinResponses.flatMap((r) => r.frozenDates ?? []))])
         setMembers(membersRes.members)
       })
       .catch(() => {})
@@ -69,7 +36,8 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
     setCheckingIn(true)
     try {
       const { habit: updated } = await api.checkIn(habit.id)
-      const todayStr = new Date().toISOString().slice(0, 10)
+      const today = new Date()
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
       setCheckedDates((prev) => (prev.includes(todayStr) ? prev : [...prev, todayStr]))
       onUpdated?.(updated)
     } catch (err) {
@@ -79,7 +47,8 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
     }
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const today = new Date()
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const alreadyDoneToday = checkedDates.includes(todayStr)
 
   return (
@@ -151,47 +120,13 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
       )}
 
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 8px', fontWeight: 500 }}>
-        Этот месяц
+        Эта неделя
       </p>
-      <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '14px 12px', marginBottom: 16 }}>
         {loading ? (
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>Загрузка…</p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, textAlign: 'center' }}>
-            {weekLabels.map((d) => (
-              <span key={d} style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{d}</span>
-            ))}
-            {grid.map((cell, i) => {
-              if (!cell) return <div key={i} />
-              const { status } = cell
-              const bg =
-                status === 'done' ? 'var(--duo-border)'
-                : status === 'frozen' ? '#BEE3F8'
-                : status === 'missed' ? 'var(--danger-bg)'
-                : 'transparent'
-              const border =
-                status === 'missed' ? '2px solid var(--danger-border)'
-                : status === 'future' ? '2px dashed var(--border)'
-                : 'none'
-              return (
-                <div
-                  key={i}
-                  style={{
-                    aspectRatio: '1',
-                    borderRadius: 8,
-                    background: bg,
-                    border,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {status === 'done' && <IconFlame size={12} color="var(--duo-fg)" />}
-                  {status === 'frozen' && <IconSnowflake size={12} color="#0C4A6E" />}
-                </div>
-              )
-            })}
-          </div>
+          <WeekCalendar checkedDates={checkedDates} frozenDates={frozenDates} />
         )}
       </div>
 

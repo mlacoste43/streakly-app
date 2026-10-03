@@ -1,4 +1,5 @@
 import { useSettings } from '../context/SettingsContext.jsx'
+import WeekCalendar from './WeekCalendar.jsx'
 
 // `variant` picks the color pair from index.css: 'solo' | 'duo' | 'team' | 'danger'
 // needsCheckIn = the streak is at risk today -> show the check-in button
@@ -13,6 +14,8 @@ export default function StreakCard({
   people = [],
   onCheckIn,
   onOpen,
+  checkedDates = [],
+  frozenDates = [],
 }) {
   const { t } = useSettings()
   const best = Math.max(record ?? 0, days)
@@ -71,6 +74,8 @@ export default function StreakCard({
       >
         <div className="fill" style={{ width: `${pct}%` }} />
       </div>
+
+      <WeekCalendar checkedDates={checkedDates} frozenDates={frozenDates} compact />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
