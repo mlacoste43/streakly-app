@@ -12,7 +12,7 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
   const [habits, setHabits] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [tab, setTab] = useState('all')
+  const [tab, setTab] = useState('solo')
   const [checkingId, setCheckingId] = useState(null)
   const [calendarData, setCalendarData] = useState({})
 
@@ -81,8 +81,9 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
     return t('solo')
   }
 
+  const soloHabits = habits.filter((h) => h.type === 'solo')
   const collective = habits.filter((h) => h.type === 'duo' || h.type === 'team')
-  const visible = tab === 'together' ? collective : habits
+  const visible = tab === 'together' ? collective : soloHabits
   const totalDays = habits.reduce((sum, h) => sum + (Number(h.days) || 0), 0)
   const today = new Date()
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
@@ -96,7 +97,7 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
         <div className="brand"><span className="brand-mark" aria-hidden="true">✳</span><span>{t('appName')}</span></div>
         <div className="tagline">{t('tagline')}</div>
         <nav className="side-nav" aria-label={t('navChallenges')}>
-          <button className={`nav-btn ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')} aria-current={tab === 'all' ? 'page' : undefined}>🏁 <span>{t('navChallenges')}</span></button>
+          <button className={`nav-btn ${tab === 'solo' ? 'active' : ''}`} onClick={() => setTab('solo')} aria-current={tab === 'solo' ? 'page' : undefined}>🏁 <span>{t('navChallenges')}</span></button>
           <button className={`nav-btn ${tab === 'together' ? 'active' : ''}`} onClick={() => setTab('together')} aria-current={tab === 'together' ? 'page' : undefined}>👋 <span>{t('navTogether')}</span></button>
           <button className="nav-btn" onClick={onOpenProfile}>👤 <span>{t('profile')}</span></button>
           <button className="nav-btn" onClick={onOpenSettings}>⚙️ <span>{t('settings')}</span></button>
@@ -122,7 +123,12 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
         </section>
 
         <section className="habits-section">
-          <div className="section-head"><h2>{tab === 'together' ? t('togetherHabits') : t('yourHabits')}</h2><span className="small-muted">{visible.length} {t('totalCount')}</span></div>
+          <div className="section-head habits-section-head">
+            <div>
+              <h2>{tab === 'together' ? t('togetherHabits') : t('yourHabits')}</h2>
+              <span className="small-muted">{visible.length} {t('totalCount')}</span>
+            </div>
+          </div>
           {loading && <div className="card-ng status-card" role="status">{t('loading')}</div>}
           {error && <div className="card-ng status-card error" role="alert">{t('loadError')}: {error}</div>}
           {!loading && !error && visible.length === 0 && <div className="card-ng status-card">{tab === 'together' ? t('emptyTogether') : t('emptyHabits')}</div>}
