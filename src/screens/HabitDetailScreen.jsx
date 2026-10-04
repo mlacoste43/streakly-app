@@ -47,6 +47,9 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
     }
   }
 
+  // The browser timezone is the same IANA timezone sent to the API in X-Timezone.
+  // Keep the UI's "today" calculation in that same local timezone instead of
+  // relying on the server's timezone.
   const today = new Date()
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const alreadyDoneToday = checkedDates.includes(todayStr)

@@ -84,7 +84,9 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
   const collective = habits.filter((h) => h.type === 'duo' || h.type === 'team')
   const visible = tab === 'together' ? collective : habits
   const totalDays = habits.reduce((sum, h) => sum + (Number(h.days) || 0), 0)
-  const dateLabel = new Date().toLocaleDateString(language === 'ru' ? 'ru-RU' : 'en-US', {
+  const today = new Date()
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const dateLabel = today.toLocaleDateString(language === 'ru' ? 'ru-RU' : 'en-US', {
     weekday: 'long', day: 'numeric', month: 'long',
   })
 
@@ -125,7 +127,7 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
           {error && <div className="card-ng status-card error" role="alert">{t('loadError')}: {error}</div>}
           {!loading && !error && visible.length === 0 && <div className="card-ng status-card">{tab === 'together' ? t('emptyTogether') : t('emptyHabits')}</div>}
           <div className="habits-grid">
-            {visible.map((h) => <StreakCard key={h.id} icon={ICONS[h.icon] ?? IconFlame} title={h.title} subtitle={subtitleFor(h)} days={h.days} record={h.record} variant={h.variant} needsCheckIn={Boolean(h.deadlineHours)} checkingIn={checkingId === h.id} people={h.type === 'duo' && h.partner ? [h.partner] : []} checkedDates={calendarData[h.id]?.dates ?? []} frozenDates={calendarData[h.id]?.frozenDates ?? []} onCheckIn={() => handleCheckIn(h)} onOpen={() => onOpenHabit?.(h)} />)}
+            {visible.map((h) => <StreakCard key={h.id} icon={ICONS[h.icon] ?? IconFlame} title={h.title} subtitle={subtitleFor(h)} days={h.days} record={h.record} variant={h.variant} needsCheckIn={!calendarData[h.id]?.dates?.includes(todayStr)} checkingIn={checkingId === h.id} people={h.type === 'duo' && h.partner ? [h.partner] : []} checkedDates={calendarData[h.id]?.dates ?? []} frozenDates={calendarData[h.id]?.frozenDates ?? []} onCheckIn={() => handleCheckIn(h)} onOpen={() => onOpenHabit?.(h)} />)}
           </div>
         </section>
       </main>

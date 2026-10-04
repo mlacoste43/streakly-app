@@ -73,8 +73,19 @@ habitsRouter.get('/:id/checkins', async (req, res, next) => {
     const habit = await findHabit(req.params.id)
     if (!habit) return res.status(404).json({ error: 'not found' })
 
+    // If the month is omitted, calculate the current month in the user's
+    // IANA timezone rather than the Render server's timezone. The frontend
+    // sends the same timezone in X-Timezone on every authenticated request.
+    const timezone = req.headers['x-timezone'] || 'UTC'
     const now = new Date()
-    const [year, month] = (req.query.month ?? `${now.getFullYear()}-${now.getMonth() + 1}`)
+    const localParts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+    }).formatToParts(now)
+    const localYear = localParts.find((part) => part.type === 'year')?.value
+    const localMonth = localParts.find((part) => part.type === 'month')?.value
+    const [year, month] = (req.query.month ?? `${localYear}-${localMonth}`)
       .split('-')
       .map(Number)
 
