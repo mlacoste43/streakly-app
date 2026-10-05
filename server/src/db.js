@@ -17,6 +17,9 @@ export async function ensureDatabaseSchema() {
 
   await pool.query(`
     ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS photo_url TEXT;
+
+    ALTER TABLE users
       ADD COLUMN IF NOT EXISTS deadline_reminder_enabled BOOLEAN NOT NULL DEFAULT true;
 
     ALTER TABLE users
@@ -31,5 +34,5 @@ export async function ensureDatabaseSchema() {
     );
   `)
 
-  console.log('Database schema check: reminder settings are ready')
+  console.log('Database schema check: reminder settings and avatars are ready')
 }

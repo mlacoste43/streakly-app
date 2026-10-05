@@ -12,6 +12,7 @@ export default function StreakCard({
   variant = 'solo',
   needsCheckIn = false,
   people = [],
+  memberStatus = [],
   onCheckIn,
   onOpen,
   checkedDates = [],
@@ -78,12 +79,20 @@ export default function StreakCard({
       <WeekCalendar checkedDates={checkedDates} frozenDates={frozenDates} compact />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          {people.map((p, i) => (
-            <span key={i} className="person" style={{ marginLeft: i ? -4 : 0 }}>
-              {String(p)[0]}
-            </span>
-          ))}
+        <div className="habit-participants" aria-label="Участники привычки">
+          {(memberStatus.length ? memberStatus : people.map((name, i) => ({ id: i, name, done: false })))
+            .slice(0, 4)
+            .map((p, i) => {
+              const name = p?.name ?? 'Участник'
+              const initials = String(name).trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
+              return (
+                <span key={p.id ?? `${name}-${i}`} className="person" title={name} style={{ marginLeft: i ? -7 : 0, zIndex: 10 - i, background: `var(--avatar-${i % 5})` }}>
+                  {p.avatarUrl ? <img src={p.avatarUrl} alt="" /> : initials || '?'}
+                </span>
+              )
+            })}
+          {memberStatus.length > 4 && <span className="person person-more">+{memberStatus.length - 4}</span>}
+          {memberStatus.length > 0 && <span className="participants-count">{memberStatus.filter((p) => p.done).length}/{memberStatus.length}</span>}
         </div>
 
         {needsCheckIn ? (

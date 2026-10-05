@@ -15,6 +15,7 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
   const [tab, setTab] = useState('solo')
   const [checkingId, setCheckingId] = useState(null)
   const [calendarData, setCalendarData] = useState({})
+  const [memberData, setMemberData] = useState({})
 
   useEffect(() => {
     let active = true
@@ -49,6 +50,17 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
         )
 
         if (active) setCalendarData(Object.fromEntries(results))
+
+        const sharedHabits = loadedHabits.filter((habit) => habit.type === 'duo')
+        const memberResults = await Promise.all(sharedHabits.map(async (habit) => {
+          try {
+            const response = await api.getMembers(habit.id)
+            return [habit.id, response.members ?? []]
+          } catch {
+            return [habit.id, []]
+          }
+        }))
+        if (active) setMemberData(Object.fromEntries(memberResults))
       })
       .catch((err) => {
         if (active) {
@@ -75,6 +87,15 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
           dates: [...new Set([...(prev[updated.id]?.dates ?? []), todayStr])],
         },
       }))
+
+      if (habit.type === 'duo') {
+        try {
+          const response = await api.getMembers(habit.id)
+          setMemberData((prev) => ({ ...prev, [habit.id]: response.members ?? [] }))
+        } catch {
+          // Keep the existing participant state if the refresh fails.
+        }
+      }
     } catch (err) {
       alert(err.message)
     } finally {
@@ -141,7 +162,7 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
           {error && <div className="card-ng status-card error" role="alert">{t('loadError')}: {error}</div>}
           {!loading && !error && visible.length === 0 && <div className="card-ng status-card">{tab === 'together' ? t('emptyTogether') : t('emptyHabits')}</div>}
           <div className="habits-grid">
-            {visible.map((h) => <StreakCard key={h.id} icon={ICONS[h.icon] ?? IconFlame} title={h.title} subtitle={subtitleFor(h)} days={h.days} record={h.record} variant={h.variant} needsCheckIn={!calendarData[h.id]?.dates?.includes(todayStr)} checkingIn={checkingId === h.id} people={h.type === 'duo' && h.partner ? [h.partner] : []} checkedDates={calendarData[h.id]?.dates ?? []} frozenDates={calendarData[h.id]?.frozenDates ?? []} onCheckIn={() => handleCheckIn(h)} onOpen={() => onOpenHabit?.(h)} />)}
+            {visible.map((h) => <StreakCard key={h.id} icon={ICONS[h.icon] ?? IconFlame} title={h.title} subtitle={subtitleFor(h)} days={h.days} record={h.record} variant={h.variant} needsCheckIn={!calendarData[h.id]?.dates?.includes(todayStr)} checkingIn={checkingId === h.id} people={h.type === 'duo' && h.partner ? [h.partner] : []} memberStatus={memberData[h.id] ?? []} checkedDates={calendarData[h.id]?.dates ?? []} frozenDates={calendarData[h.id]?.frozenDates ?? []} onCheckIn={() => handleCheckIn(h)} onOpen={() => onOpenHabit?.(h)} />)}
           </div>
         </section>
       </main>

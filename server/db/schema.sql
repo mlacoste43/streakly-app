@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
   id              BIGINT PRIMARY KEY,        -- Telegram user id
   first_name      TEXT NOT NULL,
   username        TEXT,
+  photo_url       TEXT,
   timezone        TEXT NOT NULL DEFAULT 'UTC', -- IANA name, e.g. 'Europe/Moscow'; detected client-side
   streak_freezes  INT NOT NULL DEFAULT 2,      -- how many "skip a missed day for free" tokens the user has
   deadline_reminder_enabled BOOLEAN NOT NULL DEFAULT true, -- "напоминания о дедлайне" toggle in settings

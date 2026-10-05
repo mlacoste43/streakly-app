@@ -7,19 +7,20 @@ import { pool } from '../db.js'
 export async function ensureUser(telegramUser, timezone) {
   if (!telegramUser?.id) return
   await pool.query(
-    `INSERT INTO users (id, first_name, username, timezone)
-     VALUES ($1, $2, $3, COALESCE($4, 'UTC'))
+    `INSERT INTO users (id, first_name, username, photo_url, timezone)
+     VALUES ($1, $2, $3, $4, COALESCE($5, 'UTC'))
      ON CONFLICT (id) DO UPDATE SET
        first_name = EXCLUDED.first_name,
        username = EXCLUDED.username,
-       timezone = COALESCE($4, users.timezone)`,
-    [telegramUser.id, telegramUser.first_name ?? 'Без имени', telegramUser.username ?? null, timezone ?? null]
+       photo_url = COALESCE(EXCLUDED.photo_url, users.photo_url),
+       timezone = COALESCE($5, users.timezone)`,
+    [telegramUser.id, telegramUser.first_name ?? 'Без имени', telegramUser.username ?? null, telegramUser.photo_url ?? null, timezone ?? null]
   )
 }
 
 export async function getUserById(id) {
   const { rows } = await pool.query(
-    'SELECT id, first_name, username, timezone, streak_freezes, deadline_reminder_enabled, reminder_lead_hours FROM users WHERE id = $1',
+    'SELECT id, first_name, username, photo_url, timezone, streak_freezes, deadline_reminder_enabled, reminder_lead_hours FROM users WHERE id = $1',
     [id]
   )
   return rows[0] ?? null
@@ -28,7 +29,7 @@ export async function getUserById(id) {
 export async function setDeadlineReminderEnabled(id, enabled) {
   const { rows } = await pool.query(
     `UPDATE users SET deadline_reminder_enabled = $2 WHERE id = $1
-     RETURNING id, first_name, username, timezone, streak_freezes, deadline_reminder_enabled, reminder_lead_hours`,
+     RETURNING id, first_name, username, photo_url, timezone, streak_freezes, deadline_reminder_enabled, reminder_lead_hours`,
     [id, enabled]
   )
   return rows[0] ?? null
@@ -39,7 +40,7 @@ export async function setReminderLeadHours(id, hours) {
   if (!allowed.includes(hours)) throw new Error('Invalid reminder lead time')
   const { rows } = await pool.query(
     `UPDATE users SET reminder_lead_hours = $2 WHERE id = $1
-     RETURNING id, first_name, username, timezone, streak_freezes, deadline_reminder_enabled, reminder_lead_hours`,
+     RETURNING id, first_name, username, photo_url, timezone, streak_freezes, deadline_reminder_enabled, reminder_lead_hours`,
     [id, hours]
   )
   return rows[0] ?? null
@@ -113,7 +114,7 @@ export async function getTeamMembers(habitId) {
 // partner-status block on the habit-detail screen.
 export async function getHabitMembers(habitId) {
   const { rows } = await pool.query(
-    `SELECT u.id, u.first_name AS name,
+    `SELECT u.id, u.first_name AS name, u.photo_url AS "avatarUrl",
             (ci.user_id IS NOT NULL) AS done,
             to_char(ci.checked_at, 'HH24:MI') AS time
      FROM habit_members hm
