@@ -23,6 +23,10 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
         const loadedHabits = data.habits ?? []
         if (!active) return
         setHabits(loadedHabits)
+        // The habits themselves are already loaded. Do not keep the whole
+        // screen in the loading state while the calendar/check-in data
+        // loads in the background.
+        setLoading(false)
 
         const monthKeys = getCurrentWeekMonthKeys()
         const results = await Promise.all(
@@ -46,8 +50,12 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
 
         if (active) setCalendarData(Object.fromEntries(results))
       })
-      .catch((err) => { if (active) setError(err.message) })
-      .finally(() => { if (active) setLoading(false) })
+      .catch((err) => {
+        if (active) {
+          setError(err.message)
+          setLoading(false)
+        }
+      })
     return () => { active = false }
   }, [])
 
