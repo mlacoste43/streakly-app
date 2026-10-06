@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   timezone        TEXT NOT NULL DEFAULT 'UTC', -- IANA name, e.g. 'Europe/Moscow'; detected client-side
   streak_freezes  INT NOT NULL DEFAULT 2,      -- how many "skip a missed day for free" tokens the user has
   deadline_reminder_enabled BOOLEAN NOT NULL DEFAULT true, -- "напоминания о дедлайне" toggle in settings
-  reminder_lead_hours INT NOT NULL DEFAULT 3
+  reminder_lead_hours INT NOT NULL DEFAULT 3,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -45,6 +45,20 @@ CREATE TABLE IF NOT EXISTS check_ins (
 
 CREATE INDEX IF NOT EXISTS idx_habit_members_user ON habit_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_check_ins_habit_date ON check_ins(habit_id, checkin_date);
+
+CREATE TABLE IF NOT EXISTS habit_member_stats (
+  habit_id       INT NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
+  user_id        BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  streak_days    INT NOT NULL DEFAULT 0,
+  record         INT NOT NULL DEFAULT 0,
+  xp             INT NOT NULL DEFAULT 0,
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (habit_id, user_id)
+);
+
+INSERT INTO habit_member_stats (habit_id, user_id)
+SELECT habit_id, user_id FROM habit_members
+ON CONFLICT (habit_id, user_id) DO NOTHING;
 
 -- Records the specific days a streak freeze saved a habit from breaking,
 -- so the month calendar can show a snowflake instead of a missed day.

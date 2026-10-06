@@ -136,9 +136,29 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {members.map((m) => (
-              <PersonStatus key={m.id} label={m.name} done={m.done} />
+              <PersonStatus key={m.id} label={m.name} done={m.done} avatarUrl={m.avatarUrl} />
             ))}
           </div>
+          {habit.breakRule === 'personal' && (
+            <div style={{ marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 8px', fontWeight: 700 }}>
+                Личные стрики и XP
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {[...members].sort((a, b) => (Number(b.xp) || 0) - (Number(a.xp) || 0)).map((m, index) => (
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                    <span style={{ width: 16, color: 'var(--text-secondary)', fontWeight: 700 }}>{index + 1}</span>
+                    <div style={{ width: 26, height: 26, borderRadius: '50%', overflow: 'hidden', background: 'var(--duo-bg)', display: 'grid', placeItems: 'center', color: 'var(--duo-icon)', fontWeight: 800 }}>
+                      {m.avatarUrl ? <img src={m.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : String(m.name ?? '?').trim().slice(0, 1).toUpperCase()}
+                    </div>
+                    <span style={{ flex: 1, fontWeight: 600 }}>{m.name}</span>
+                    <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>🔥 {m.streakDays ?? 0}</span>
+                    <span style={{ color: 'var(--team-icon)', fontWeight: 800 }}>⭐ {m.xp ?? 0} XP</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -172,7 +192,7 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
   )
 }
 
-function PersonStatus({ label, done }) {
+function PersonStatus({ label, done, avatarUrl }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
       <div
@@ -187,9 +207,10 @@ function PersonStatus({ label, done }) {
           fontSize: 12,
           fontWeight: 500,
           color: '#fff',
+          overflow: 'hidden',
         }}
       >
-        {label[0]}
+        {avatarUrl ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : label[0]}
       </div>
       <div>
         <p style={{ fontSize: 13, margin: 0, fontWeight: 500 }}>{label}</p>

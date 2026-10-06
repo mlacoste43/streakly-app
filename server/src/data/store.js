@@ -49,9 +49,13 @@ export async function setReminderLeadHours(id, hours) {
 
 export async function listHabitsForUser(userId) {
   const { rows } = await pool.query(
-    `SELECT h.*
+    `SELECT h.*,
+            CASE WHEN h.break_rule = 'personal' THEN COALESCE(hms.streak_days, 0) ELSE h.days END AS personal_days,
+            CASE WHEN h.break_rule = 'personal' THEN COALESCE(hms.record, 0) ELSE h.record END AS personal_record,
+            CASE WHEN h.break_rule = 'personal' THEN COALESCE(hms.xp, 0) ELSE 0 END AS personal_xp
      FROM habits h
      JOIN habit_members hm ON hm.habit_id = h.id
+     LEFT JOIN habit_member_stats hms ON hms.habit_id = h.id AND hms.user_id = $1
      WHERE hm.user_id = $1
      ORDER BY h.id`,
     [userId]
@@ -73,6 +77,10 @@ export async function addHabit({ ownerId, name, type, frequency, breakRule }) {
   )
   const habit = rows[0]
   await pool.query('INSERT INTO habit_members (habit_id, user_id) VALUES ($1, $2)', [habit.id, ownerId])
+  await pool.query(
+    'INSERT INTO habit_member_stats (habit_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [habit.id, ownerId]
+  )
   return toHabitJson(habit)
 }
 
@@ -82,6 +90,15 @@ export async function addHabit({ ownerId, name, type, frequency, breakRule }) {
 // server's - so someone in Moscow checking in at 11pm and someone in
 // New York checking in at 11pm both correctly log their own local day.
 export async function checkIn(habitId, userId) {
+  const { rows: membership } = await pool.query(
+    `SELECT h.* FROM habits h
+     JOIN habit_members hm ON hm.habit_id = h.id AND hm.user_id = $2
+     WHERE h.id = $1`,
+    [habitId, userId]
+  )
+  if (!membership[0]) return null
+
+  const habitRow = membership[0]
   const inserted = await pool.query(
     `INSERT INTO check_ins (habit_id, user_id, checkin_date)
      SELECT $1, $2, (now() AT TIME ZONE u.timezone)::date
@@ -92,6 +109,52 @@ export async function checkIn(habitId, userId) {
   )
 
   if (inserted.rowCount > 0) {
+    await pool.query(
+      `INSERT INTO habit_member_stats (habit_id, user_id)
+       VALUES ($1, $2)
+       ON CONFLICT DO NOTHING`,
+      [habitId, userId]
+    )
+
+    if (habitRow.break_rule === 'personal') {
+      // If the backend was asleep when the previous day ended, repair the
+      // personal streak on the first check-in instead of relying only on cron.
+      await pool.query(
+        `UPDATE habit_member_stats hms
+         SET streak_days = 0, updated_at = now()
+         WHERE hms.habit_id = $1
+           AND hms.user_id = $2
+           AND EXISTS (
+             SELECT 1 FROM users u WHERE u.id = $2
+               AND NOT EXISTS (
+                 SELECT 1 FROM check_ins ci
+                 WHERE ci.habit_id = $1 AND ci.user_id = $2
+                   AND ci.checkin_date = (now() AT TIME ZONE u.timezone)::date - INTERVAL '1 day'
+               )
+           )`,
+        [habitId, userId]
+      )
+
+      const { rows } = await pool.query(
+        `UPDATE habit_member_stats
+         SET streak_days = streak_days + 1,
+             record = GREATEST(record, streak_days + 1),
+             xp = xp + 10,
+             updated_at = now()
+         WHERE habit_id = $1 AND user_id = $2
+         RETURNING streak_days, record, xp`,
+        [habitId, userId]
+      )
+      const stats = rows[0] ?? { streak_days: 0, record: 0, xp: 0 }
+      const habit = toHabitJson({
+        ...habitRow,
+        personal_days: stats.streak_days,
+        personal_record: stats.record,
+        personal_xp: stats.xp,
+      })
+      return habit
+    }
+
     const { rows } = await pool.query(
       `UPDATE habits
        SET days = days + 1, record = GREATEST(record, days + 1)
@@ -102,7 +165,18 @@ export async function checkIn(habitId, userId) {
     return rows[0] ? toHabitJson(rows[0]) : null
   }
 
-  return findHabit(habitId)
+  if (habitRow.break_rule === 'personal') {
+    const { rows } = await pool.query(
+      `SELECT h.*, hms.streak_days AS personal_days, hms.record AS personal_record, hms.xp AS personal_xp
+       FROM habits h
+       LEFT JOIN habit_member_stats hms ON hms.habit_id = h.id AND hms.user_id = $2
+       WHERE h.id = $1`,
+      [habitId, userId]
+    )
+    return rows[0] ? toHabitJson(rows[0]) : null
+  }
+
+  return toHabitJson(habitRow)
 }
 
 export async function getTeamMembers(habitId) {
@@ -113,16 +187,26 @@ export async function getTeamMembers(habitId) {
 // they've checked in today. Used for the team screen and the duo
 // partner-status block on the habit-detail screen.
 export async function getHabitMembers(habitId) {
+  await pool.query(
+    `INSERT INTO habit_member_stats (habit_id, user_id)
+     SELECT habit_id, user_id FROM habit_members WHERE habit_id = $1
+     ON CONFLICT (habit_id, user_id) DO NOTHING`,
+    [habitId]
+  )
   const { rows } = await pool.query(
     `SELECT u.id, u.first_name AS name, u.photo_url AS "avatarUrl",
             (ci.user_id IS NOT NULL) AS done,
-            to_char(ci.checked_at, 'HH24:MI') AS time
+            to_char(ci.checked_at, 'HH24:MI') AS time,
+            COALESCE(hms.streak_days, 0) AS "streakDays",
+            COALESCE(hms.record, 0) AS record,
+            COALESCE(hms.xp, 0) AS xp
      FROM habit_members hm
      JOIN users u ON u.id = hm.user_id
      LEFT JOIN check_ins ci ON ci.habit_id = hm.habit_id AND ci.user_id = hm.user_id
        AND ci.checkin_date = (now() AT TIME ZONE u.timezone)::date
+     LEFT JOIN habit_member_stats hms ON hms.habit_id = hm.habit_id AND hms.user_id = hm.user_id
      WHERE hm.habit_id = $1
-     ORDER BY u.id`,
+     ORDER BY hms.xp DESC NULLS LAST, hms.streak_days DESC NULLS LAST, u.id`,
     [habitId]
   )
   return rows
@@ -169,6 +253,30 @@ export async function getFrozenDatesForMonth(habitId, year, month) {
 // duo/team habit's deadline effectively follows the owner's clock, not
 // every member's - worth revisiting if that becomes a real complaint.
 export async function resetMissedStreaks() {
+  // Personal-rule habits keep an independent streak for every member.
+  // XP is never removed when a personal streak is broken.
+  await pool.query(
+    `UPDATE habit_member_stats hms
+     SET streak_days = 0, updated_at = now()
+     FROM habits h
+     JOIN users u ON u.id = hms.user_id
+     WHERE hms.habit_id = h.id
+       AND h.break_rule = 'personal'
+       AND hms.streak_days > 0
+       AND NOT EXISTS (
+         SELECT 1 FROM check_ins ci
+         WHERE ci.habit_id = hms.habit_id
+           AND ci.user_id = hms.user_id
+           AND ci.checkin_date = (now() AT TIME ZONE u.timezone)::date - INTERVAL '1 day'
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM check_ins ci
+         WHERE ci.habit_id = hms.habit_id
+           AND ci.user_id = hms.user_id
+           AND ci.checkin_date = (now() AT TIME ZONE u.timezone)::date
+       )`
+  )
+
   const { rows: candidates } = await pool.query(
     `SELECT h.id, h.title, u.id AS owner_id, u.streak_freezes,
             ((now() AT TIME ZONE u.timezone)::date - INTERVAL '1 day')::date AS missed_date
@@ -293,7 +401,8 @@ function toHabitJson(row) {
     frequency: row.frequency,
     breakRule: row.break_rule,
     deadlineHours: row.deadline_hours,
-    days: row.days,
-    record: row.record,
+    days: row.personal_days ?? row.days,
+    record: row.personal_record ?? row.record,
+    xp: Number(row.personal_xp ?? 0),
   }
 }

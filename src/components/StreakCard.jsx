@@ -17,6 +17,8 @@ export default function StreakCard({
   onOpen,
   checkedDates = [],
   frozenDates = [],
+  xp = 0,
+  personalRule = false,
 }) {
   const { t } = useSettings()
   const best = Math.max(record ?? 0, days)
@@ -54,7 +56,10 @@ export default function StreakCard({
           </span>
         </div>
 
-        <div className="streak-pill" title={t('streak')}>🔥 {days}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+          <div className="streak-pill" title={t('streak')}>🔥 {days}</div>
+          {personalRule && <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--team-icon)' }}>⭐ {xp} XP</span>}
+        </div>
       </div>
 
       <div

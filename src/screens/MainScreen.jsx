@@ -162,7 +162,7 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
           {error && <div className="card-ng status-card error" role="alert">{t('loadError')}: {error}</div>}
           {!loading && !error && visible.length === 0 && <div className="card-ng status-card">{tab === 'together' ? t('emptyTogether') : t('emptyHabits')}</div>}
           <div className="habits-grid">
-            {visible.map((h) => <StreakCard key={h.id} icon={ICONS[h.icon] ?? IconFlame} title={h.title} subtitle={subtitleFor(h)} days={h.days} record={h.record} variant={h.variant} needsCheckIn={!calendarData[h.id]?.dates?.includes(todayStr)} checkingIn={checkingId === h.id} people={h.type === 'duo' && h.partner ? [h.partner] : []} memberStatus={memberData[h.id] ?? []} checkedDates={calendarData[h.id]?.dates ?? []} frozenDates={calendarData[h.id]?.frozenDates ?? []} onCheckIn={() => handleCheckIn(h)} onOpen={() => onOpenHabit?.(h)} />)}
+            {visible.map((h) => <StreakCard key={h.id} icon={ICONS[h.icon] ?? IconFlame} title={h.title} subtitle={subtitleFor(h)} days={h.days} record={h.record} variant={h.variant} needsCheckIn={!calendarData[h.id]?.dates?.includes(todayStr)} checkingIn={checkingId === h.id} people={h.type === 'duo' && h.partner ? [h.partner] : []} memberStatus={memberData[h.id] ?? []} checkedDates={calendarData[h.id]?.dates ?? []} frozenDates={calendarData[h.id]?.frozenDates ?? []} xp={h.xp ?? 0} personalRule={h.breakRule === 'personal'} onCheckIn={() => handleCheckIn(h)} onOpen={() => onOpenHabit?.(h)} />)}
           </div>
         </section>
       </main>
