@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  IconX, IconUser, IconUsers, IconUsersGroup, IconClock, IconChevronRight,
+  IconX, IconUser, IconUsers, IconUsersGroup, IconClock,
   IconFlameOff, IconLanguage,
 } from '@tabler/icons-react'
 
@@ -88,7 +88,10 @@ export default function CreateHabitScreen({ onBack, onCreate, onSave, onDelete, 
             return (
               <button
                 key={t.id}
-                onClick={() => setType(t.id)}
+                onClick={() => {
+                  setType(t.id)
+                  if (t.id === 'solo') setBreakRule('all')
+                }}
                 style={{
                   background: active ? 'var(--solo-bg)' : 'var(--surface)',
                   border: `2px solid ${active ? 'var(--solo-border)' : 'var(--border)'}`,
@@ -136,38 +139,37 @@ export default function CreateHabitScreen({ onBack, onCreate, onSave, onDelete, 
       <Field label="Дедлайн отметки">
         <div
           style={{
-            background: 'var(--surface)', borderRadius: 14, padding: '0.8rem 1rem',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0.15rem 0',
+            display: 'flex', alignItems: 'center', gap: 8,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <IconClock size={18} color="var(--text-secondary)" />
-            <p style={{ fontSize: 14, margin: 0 }}>До 23:59 по твоему времени</p>
-          </div>
-          <IconChevronRight size={16} color="var(--text-secondary)" />
+          <IconClock size={18} color="var(--text-secondary)" />
+          <p style={{ fontSize: 14, margin: 0, color: 'var(--text)' }}>До 23:59 по твоему времени</p>
         </div>
       </Field>
 
-      <div
-        style={{
-          background: 'var(--danger-bg)', border: '1.5px solid var(--danger-border)',
-          borderRadius: 14, padding: '0.9rem 1rem', marginBottom: 20,
-        }}
-      >
-        <p style={{ fontSize: 12, color: 'var(--danger-icon)', margin: '0 0 8px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <IconFlameOff size={13} /> Правило разрыва стрика
-        </p>
-        <RadioRow
-          label="Пропустил один — стрик горит у всех"
-          selected={breakRule === 'all'}
-          onClick={() => setBreakRule('all')}
-        />
-        <RadioRow
-          label="У каждого свой личный стрик, но все видят чужой"
-          selected={breakRule === 'personal'}
-          onClick={() => setBreakRule('personal')}
-        />
-      </div>
+      {type !== 'solo' && (
+        <div
+          style={{
+            background: 'var(--danger-bg)', border: '1.5px solid var(--danger-border)',
+            borderRadius: 14, padding: '0.9rem 1rem', marginBottom: 20,
+          }}
+        >
+          <p style={{ fontSize: 12, color: 'var(--danger-icon)', margin: '0 0 8px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <IconFlameOff size={13} /> Правило разрыва стрика
+          </p>
+          <RadioRow
+            label="Пропустил один — стрик горит у всех"
+            selected={breakRule === 'all'}
+            onClick={() => setBreakRule('all')}
+          />
+          <RadioRow
+            label="У каждого свой личный стрик, но за отметки начисляется XP"
+            selected={breakRule === 'personal'}
+            onClick={() => setBreakRule('personal')}
+          />
+        </div>
+      )}
 
       <button
         onClick={handleSubmit}
