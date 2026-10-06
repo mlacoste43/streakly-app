@@ -58,7 +58,6 @@ export default function StreakCard({
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
           <div className="streak-pill" title={t('streak')}>🔥 {days}</div>
-          {personalRule && <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--team-icon)' }}>⭐ {xp} XP</span>}
         </div>
       </div>
 
