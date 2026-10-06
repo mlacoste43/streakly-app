@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { IconArrowLeft, IconFlame, IconCheck, IconClock, IconPencil } from '@tabler/icons-react'
+import { IconArrowLeft, IconFlame, IconCheck, IconClock, IconPencil, IconUserPlus } from '@tabler/icons-react'
 import { api } from '../api.js'
+import { shareLink } from '../telegram.js'
 import MonthCalendar, { getCurrentMonthKey } from '../components/MonthCalendar.jsx'
 
 export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) {
@@ -9,6 +10,19 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [checkingIn, setCheckingIn] = useState(false)
+  const [inviting, setInviting] = useState(false)
+
+  async function handleInvite() {
+    setInviting(true)
+    try {
+      const { link } = await api.getInviteLink(habit.id)
+      await shareLink(link, `Присоединяйся к «${habit.title}» в Streakly!`)
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setInviting(false)
+    }
+  }
 
   const monthKey = getCurrentMonthKey()
 
@@ -69,6 +83,11 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
           <IconArrowLeft size={20} color="var(--text-secondary)" />
         </button>
         <p style={{ fontSize: 16, fontWeight: 500, margin: 0, flex: 1 }}>{habit.title}</p>
+        {habit.type === 'duo' && (
+          <button onClick={handleInvite} disabled={inviting} style={{ background: 'none', border: 'none', padding: 0, display: 'flex' }}>
+            <IconUserPlus size={18} color="var(--text-secondary)" />
+          </button>
+        )}
         {onEdit && (
           <button onClick={() => onEdit(habit)} style={{ background: 'none', border: 'none', padding: 0, display: 'flex' }}>
             <IconPencil size={18} color="var(--text-secondary)" />

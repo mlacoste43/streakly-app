@@ -2,8 +2,10 @@ import { Router } from 'express'
 import {
   listHabitsForUser, addHabit, findHabit, checkIn, getTeamMembers, getHabitMembers,
   getCheckInsForMonth, getFrozenDatesForMonth, updateHabit, deleteHabit,
+  countHabitMembers, isHabitMember, joinHabit,
 } from '../data/store.js'
 import { notifyUser } from '../telegramBot.js'
+import { buildInviteLink, verifyInviteToken } from '../invites.js'
 
 export const habitsRouter = Router()
 
@@ -128,6 +130,60 @@ habitsRouter.delete('/:id', async (req, res, next) => {
     }
     await deleteHabit(req.params.id)
     res.status(204).end()
+  } catch (err) {
+    next(err)
+  }
+})
+
+habitsRouter.get('/:id/invite', async (req, res, next) => {
+  try {
+    const habit = await findHabit(req.params.id)
+    if (!habit) return res.status(404).json({ error: 'not found' })
+    if (habit.type === 'solo') return res.status(400).json({ error: 'solo habits have nothing to invite to' })
+    const member = await isHabitMember(habit.id, req.telegramUser.id)
+    if (!member) return res.status(403).json({ error: 'only members can invite others' })
+
+    const link = buildInviteLink(habit.id)
+    if (!link) {
+      return res.status(500).json({
+        error: 'Invite links are not configured on the server (missing TELEGRAM_BOT_USERNAME / TELEGRAM_MINIAPP_SHORT_NAME)',
+      })
+    }
+    res.json({ link })
+  } catch (err) {
+    next(err)
+  }
+})
+
+habitsRouter.post('/:id/join', async (req, res, next) => {
+  try {
+    const habit = await findHabit(req.params.id)
+    if (!habit) return res.status(404).json({ error: 'not found' })
+
+    const { token } = req.body ?? {}
+    if (!verifyInviteToken(habit.id, token)) {
+      return res.status(403).json({ error: 'invalid or expired invite link' })
+    }
+
+    const alreadyIn = await isHabitMember(habit.id, req.telegramUser.id)
+    if (alreadyIn) {
+      return res.json({ habit, alreadyMember: true })
+    }
+
+    if (habit.type === 'duo') {
+      const count = await countHabitMembers(habit.id)
+      if (count >= 2) {
+        return res.status(409).json({ error: 'this duo is already full' })
+      }
+    }
+
+    const updated = await joinHabit(habit.id, req.telegramUser.id)
+    res.json({ habit: updated, alreadyMember: false })
+
+    notifyUser(
+      habit.ownerId,
+      `👋 ${req.telegramUser.first_name ?? 'Кто-то'} присоединился к «${habit.title}»!`
+    ).catch((err) => console.error('Failed to send join notification', err))
   } catch (err) {
     next(err)
   }

@@ -179,6 +179,31 @@ export async function checkIn(habitId, userId) {
   return toHabitJson(habitRow)
 }
 
+export async function countHabitMembers(habitId) {
+  const { rows } = await pool.query('SELECT COUNT(*)::int AS count FROM habit_members WHERE habit_id = $1', [habitId])
+  return rows[0].count
+}
+
+export async function isHabitMember(habitId, userId) {
+  const { rows } = await pool.query(
+    'SELECT 1 FROM habit_members WHERE habit_id = $1 AND user_id = $2',
+    [habitId, userId]
+  )
+  return rows.length > 0
+}
+
+export async function joinHabit(habitId, userId) {
+  await pool.query(
+    'INSERT INTO habit_members (habit_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [habitId, userId]
+  )
+  await pool.query(
+    'INSERT INTO habit_member_stats (habit_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [habitId, userId]
+  )
+  return findHabit(habitId)
+}
+
 export async function getTeamMembers(habitId) {
   return getHabitMembers(habitId)
 }

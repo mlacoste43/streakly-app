@@ -38,4 +38,6 @@ export const api = {
   getTeam: (id) => request(`/api/habits/${id}/team`),
   getMembers: (id) => request(`/api/habits/${id}/members`),
   getCheckIns: (id, month) => request(`/api/habits/${id}/checkins${month ? `?month=${month}` : ''}`),
+  getInviteLink: (id) => request(`/api/habits/${id}/invite`),
+  joinHabit: (id, token) => request(`/api/habits/${id}/join`, { method: 'POST', body: JSON.stringify({ token }) }),
 }

@@ -1,10 +1,24 @@
 import { useEffect, useState } from 'react'
-import { IconArrowLeft, IconFlame, IconAlertTriangle, IconCheck, IconClock, IconPencil } from '@tabler/icons-react'
+import { IconArrowLeft, IconFlame, IconAlertTriangle, IconCheck, IconClock, IconPencil, IconUserPlus } from '@tabler/icons-react'
 import { api } from '../api.js'
+import { shareLink } from '../telegram.js'
 
 export default function TeamScreen({ habit, onBack, onEdit }) {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [inviting, setInviting] = useState(false)
+
+  async function handleInvite() {
+    setInviting(true)
+    try {
+      const { link } = await api.getInviteLink(habit.id)
+      await shareLink(link, `Присоединяйся к «${habit.title}» в Streakly!`)
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setInviting(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -29,6 +43,9 @@ export default function TeamScreen({ habit, onBack, onEdit }) {
           <IconArrowLeft size={20} color="var(--text-secondary)" />
         </button>
         <p style={{ fontSize: 16, fontWeight: 500, margin: 0, flex: 1 }}>{habit?.title ?? 'Командная привычка'}</p>
+        <button onClick={handleInvite} disabled={inviting} style={{ background: 'none', border: 'none', padding: 0, display: 'flex' }}>
+          <IconUserPlus size={18} color="var(--text-secondary)" />
+        </button>
         {onEdit && (
           <button onClick={() => onEdit(habit)} style={{ background: 'none', border: 'none', padding: 0, display: 'flex' }}>
             <IconPencil size={18} color="var(--text-secondary)" />
