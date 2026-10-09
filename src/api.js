@@ -28,6 +28,7 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  getProgress: () => request('/api/progress'),
   getMe: () => request('/api/me'),
   patchMe: (data) => request('/api/me', { method: 'PATCH', body: JSON.stringify(data) }),
   getHabits: () => request('/api/habits'),

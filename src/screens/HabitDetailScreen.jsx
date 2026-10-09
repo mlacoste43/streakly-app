@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { IconArrowLeft, IconFlame, IconCheck, IconClock, IconPencil, IconUserPlus } from '@tabler/icons-react'
 import { api } from '../api.js'
 import { shareLink } from '../telegram.js'
@@ -10,6 +10,8 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [checkingIn, setCheckingIn] = useState(false)
+  const checkingLock = useRef(false)
+  const [calendarError, setCalendarError] = useState('')
   const [inviting, setInviting] = useState(false)
 
   async function handleInvite() {
@@ -29,6 +31,7 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
+    setCalendarError('')
     Promise.all([
       api.getCheckIns(habit.id, monthKey),
       habit.type === 'duo' ? api.getMembers(habit.id) : Promise.resolve({ members: [] }),
@@ -39,7 +42,7 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
         setFrozenDates([...new Set(checkinResponses?.frozenDates ?? [])])
         setMembers(membersRes.members)
       })
-      .catch(() => {})
+      .catch(() => { if (!cancelled) setCalendarError('Не удалось загрузить календарь. Вернись назад и открой привычку повторно.') })
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
@@ -47,6 +50,8 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
   }, [habit.id, monthKey])
 
   async function handleCheckIn() {
+    if (checkingLock.current || loading || calendarError || alreadyDoneToday) return
+    checkingLock.current = true
     setCheckingIn(true)
     try {
       const { habit: updated } = await api.checkIn(habit.id)
@@ -54,9 +59,14 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
       setCheckedDates((prev) => (prev.includes(todayStr) ? prev : [...prev, todayStr]))
       onUpdated?.(updated)
+      if (habit.type === 'duo') {
+        const response = await api.getMembers(habit.id).catch(() => null)
+        if (response) setMembers(response.members ?? [])
+      }
     } catch (err) {
       alert(err.message)
     } finally {
+      checkingLock.current = false
       setCheckingIn(false)
     }
   }
@@ -182,10 +192,10 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
       )}
 
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 8px', fontWeight: 500 }}>
-        Этот месяц
+        Мои отметки за месяц
       </p>
       <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '14px 12px', marginBottom: 16 }}>
-        {loading ? (
+        {calendarError ? <p role="alert">{calendarError}</p> : loading ? (
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>Загрузка…</p>
         ) : (
           <MonthCalendar checkedDates={checkedDates} frozenDates={frozenDates} />
@@ -194,7 +204,7 @@ export default function HabitDetailScreen({ habit, onBack, onUpdated, onEdit }) 
 
       <button
         onClick={handleCheckIn}
-        disabled={checkingIn || alreadyDoneToday}
+        disabled={loading || !!calendarError || checkingIn || alreadyDoneToday}
         style={{
           width: '100%',
           background: alreadyDoneToday ? 'var(--border)' : 'var(--primary)',

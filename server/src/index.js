@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import { telegramAuth } from './middleware/telegramAuth.js'
 import { habitsRouter } from './routes/habits.js'
+import { progressRouter } from './routes/progress.js'
 import { scheduleStreakReset, runStreakReset } from './cron/resetStreaks.js'
 import { scheduleDeadlineReminders, runDeadlineReminders } from './cron/deadlineReminders.js'
 import { getUserById, setDeadlineReminderEnabled, setReminderLeadHours } from './data/store.js'
@@ -49,6 +50,7 @@ app.patch('/api/me', async (req, res, next) => {
   }
 })
 
+app.use('/api/progress', progressRouter)
 app.use('/api/habits', habitsRouter)
 
 // Dev-only: trigger the daily streak-reset job on demand instead of waiting for 00:05.

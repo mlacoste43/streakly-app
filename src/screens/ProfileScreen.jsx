@@ -37,7 +37,7 @@ export default function ProfileScreen({ onBack, user }) {
 
   const stats = useMemo(() => {
     const currentDays = habits.reduce((sum, h) => sum + (Number(h.days) || 0), 0)
-    const totalRecord = habits.reduce((sum, h) => sum + (Number(h.record) || 0), 0)
+    const totalRecord = null // Legacy route: do not label the sum of records as completions.
     const bestRecord = habits.reduce((max, h) => Math.max(max, Number(h.record) || 0), 0)
 
     return {
@@ -66,13 +66,12 @@ export default function ProfileScreen({ onBack, user }) {
         <button className="back-btn" onClick={onBack} aria-label={t('back')}>
           <IconArrowLeft size={21} />
         </button>
+        <p>{t('profile')}</p>
       </div>
 
       <section className="profile-card">
         <div className="profile-avatar">
-          {displayUser.photo_url
-            ? <img src={displayUser.photo_url} alt="" />
-            : (firstName[0] ?? 'Г').toUpperCase()}
+          {(firstName[0] ?? 'Г').toUpperCase()}
         </div>
         <div className="profile-identity">
           <h1>{firstName}</h1>
@@ -83,7 +82,7 @@ export default function ProfileScreen({ onBack, user }) {
       <section className="profile-stats">
         <Stat icon={IconFlame} value={loading ? '…' : stats.currentDays} label={t('profileCurrentDays')} />
         <Stat icon={IconTrophy} value={loading ? '…' : stats.bestRecord} label={t('profileBestRecord')} />
-        <Stat icon={IconCalendarCheck} value={loading ? '…' : stats.totalRecord} label={t('profileCompleted')} />
+        <Stat icon={IconCalendarCheck} value={loading ? '…' : '—'} label={t('profileCompleted')} />
         <Stat icon={IconTarget} value={loading ? '…' : stats.habitsCount} label={t('profileHabits')} />
       </section>
 

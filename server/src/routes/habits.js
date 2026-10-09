@@ -2,18 +2,23 @@ import { Router } from 'express'
 import {
   listHabitsForUser, addHabit, findHabit, checkIn, getTeamMembers, getHabitMembers,
   getCheckInsForMonth, getFrozenDatesForMonth, updateHabit, deleteHabit,
-  countHabitMembers, isHabitMember, joinHabit, resetMissedStreaks,
+  countHabitMembers, isHabitMember, joinHabit,
 } from '../data/store.js'
 import { notifyUser } from '../telegramBot.js'
 import { buildInviteLink, verifyInviteToken } from '../invites.js'
 
 export const habitsRouter = Router()
+habitsRouter.use('/:id', async (req, res, next) => {
+  try {
+    if (req.method !== 'GET') return next()
+    if (!/^\d+$/.test(req.params.id)) return res.status(400).json({ error: 'Invalid habit id' })
+    if (!await isHabitMember(req.params.id, req.telegramUser.id)) return res.status(404).json({ error: 'not found' })
+    next()
+  } catch (err) { next(err) }
+})
 
 habitsRouter.get('/', async (req, res, next) => {
   try {
-    // Reconcile missed streak resets when the app is opened. Render's free
-    // instance can sleep through the nightly cron, leaving stale streaks.
-    await resetMissedStreaks()
     const habits = await listHabitsForUser(req.telegramUser.id)
     res.json({ habits })
   } catch (err) {
@@ -90,12 +95,13 @@ habitsRouter.get('/:id/checkins', async (req, res, next) => {
     }).formatToParts(now)
     const localYear = localParts.find((part) => part.type === 'year')?.value
     const localMonth = localParts.find((part) => part.type === 'month')?.value
+    if (req.query.month != null && (typeof req.query.month !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(req.query.month))) return res.status(400).json({ error: 'Invalid month' })
     const [year, month] = (req.query.month ?? `${localYear}-${localMonth}`)
       .split('-')
       .map(Number)
 
     const [dates, frozenDates] = await Promise.all([
-      getCheckInsForMonth(habit.id, year, month),
+      getCheckInsForMonth(habit.id, year, month, req.telegramUser.id),
       getFrozenDatesForMonth(habit.id, year, month),
     ])
     res.json({ dates, frozenDates })

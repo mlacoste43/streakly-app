@@ -237,33 +237,33 @@ export async function getHabitMembers(habitId) {
   return rows
 }
 
-// All check-in dates for a habit within a given month (any member's
-// check-in counts as "done" for that day - matches the "one miss breaks
-// it for everyone" model). Returns an array of 'YYYY-MM-DD' strings.
-export async function getCheckInsForMonth(habitId, year, month) {
+// Personal check-in dates for the authenticated member within a month.
+// Membership is checked by the route. Dates are formatted by Postgres,
+// avoiding timezone shifts during JS DATE serialization.
+export async function getCheckInsForMonth(habitId, year, month, userId) {
   const { rows } = await pool.query(
-    `SELECT DISTINCT checkin_date
+    `SELECT DISTINCT to_char(checkin_date, 'YYYY-MM-DD') AS date_key
      FROM check_ins
-     WHERE habit_id = $1
+     WHERE habit_id = $1 AND user_id = $4
        AND date_trunc('month', checkin_date) = date_trunc('month', make_date($2, $3, 1))
-     ORDER BY checkin_date`,
-    [habitId, year, month]
+     ORDER BY date_key`,
+    [habitId, year, month, userId]
   )
-  return rows.map((r) => r.checkin_date.toISOString().slice(0, 10))
+  return rows.map((r) => r.date_key)
 }
 
 // Days in a given month that were saved by a streak freeze (instead of
 // breaking the streak). Same string-date shape as getCheckInsForMonth.
 export async function getFrozenDatesForMonth(habitId, year, month) {
   const { rows } = await pool.query(
-    `SELECT freeze_date
+    `SELECT to_char(freeze_date, 'YYYY-MM-DD') AS date_key
      FROM freeze_uses
      WHERE habit_id = $1
        AND date_trunc('month', freeze_date) = date_trunc('month', make_date($2, $3, 1))
      ORDER BY freeze_date`,
     [habitId, year, month]
   )
-  return rows.map((r) => r.freeze_date.toISOString().slice(0, 10))
+  return rows.map((r) => r.date_key)
 }
 
 // The core "don't break the streak" mechanic: any habit where NOBODY
@@ -283,9 +283,9 @@ export async function resetMissedStreaks() {
   await pool.query(
     `UPDATE habit_member_stats hms
      SET streak_days = 0, updated_at = now()
-     FROM habits h, users u
+     FROM habits h
+     JOIN users u ON u.id = hms.user_id
      WHERE hms.habit_id = h.id
-       AND u.id = hms.user_id
        AND h.break_rule = 'personal'
        AND hms.streak_days > 0
        AND NOT EXISTS (

@@ -67,7 +67,7 @@ export default function TeamScreen({ habit, onBack, onEdit }) {
         <div style={{ background: 'var(--surface)', border: '2px solid var(--danger-border)', borderRadius: 16, padding: '0.9rem 1rem', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
           <IconAlertTriangle size={18} color="var(--danger-icon)" style={{ flexShrink: 0 }} />
           <p style={{ fontSize: 12, margin: 0, color: 'var(--danger-icon)' }}>
-            {laggards.map((l) => l.name).join(', ')} ещё не отметился — {habit?.breakRule === 'personal' ? 'его личный стрик под угрозой' : 'стрик команды под угрозой'}
+            Сегодня у каждого свой темп. Пока без отметки: {laggards.length}.
           </p>
         </div>
       )}
@@ -86,7 +86,7 @@ export default function TeamScreen({ habit, onBack, onEdit }) {
               <p style={{ fontSize: 13, margin: 0, flex: 1, fontWeight: 500 }}>{m.name}</p>
               <span style={{ fontSize: 11, fontWeight: 700, color: m.done ? 'var(--primary)' : 'var(--danger-icon)', display: 'flex', alignItems: 'center', gap: 4 }}>
                 {m.done ? <IconCheck size={13} /> : <IconClock size={13} />}
-                {m.done ? `Готово${m.time ? ` в ${m.time}` : ''}` : 'Не отметился'}
+                {m.done ? `Готово${m.time ? ` в ${m.time}` : ''}` : 'Пока без отметки'}
               </span>
             </div>
           ))}
@@ -111,8 +111,8 @@ export default function TeamScreen({ habit, onBack, onEdit }) {
       </div>
 
       {laggards.length > 0 && (
-        <button style={{ width: '100%', background: 'var(--primary)', color: 'var(--primary-text)', border: 'none', borderRadius: 16, fontWeight: 500, padding: 12 }}>
-          Позвать {laggards[0].name} отметиться
+        <button onClick={handleInvite} disabled={inviting} style={{ width: '100%', background: 'var(--primary)', color: 'var(--primary-text)', border: 'none', borderRadius: 16, fontWeight: 500, padding: 12 }}>
+          {inviting ? 'Готовим ссылку…' : 'Поделиться приглашением'}
         </button>
       )}
     </div>
