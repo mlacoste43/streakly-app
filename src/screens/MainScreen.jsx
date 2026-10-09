@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { IconFlame, IconPlus, IconRun, IconLanguage, IconBook, IconUsers } from '@tabler/icons-react'
+import { IconFlame, IconPlus, IconRun, IconLanguage, IconBook, IconUsers, IconUserCircle } from '@tabler/icons-react'
 import StreakCard from '../components/StreakCard.jsx'
 import { api } from '../api.js'
 import { getCurrentWeekMonthKeys } from '../components/WeekCalendar.jsx'
@@ -139,6 +139,9 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
           <span className="eyebrow">{dateLabel}</span>
           <div className="top-actions">
             <span className="pill" title={t('totalFireDays')}>🔥 {totalDays}</span>
+            <button className="profile-icon-btn" type="button" onClick={onOpenProfile} aria-label={t('profile')} title={t('profile')}>
+              <IconUserCircle size={23} stroke={2} />
+            </button>
           </div>
         </header>
         <section className="hero">
