@@ -2,7 +2,7 @@ import { Router } from 'express'
 import {
   listHabitsForUser, addHabit, findHabit, checkIn, getTeamMembers, getHabitMembers,
   getCheckInsForMonth, getFrozenDatesForMonth, updateHabit, deleteHabit,
-  countHabitMembers, isHabitMember, joinHabit,
+  countHabitMembers, isHabitMember, joinHabit, resetMissedStreaks,
 } from '../data/store.js'
 import { notifyUser } from '../telegramBot.js'
 import { buildInviteLink, verifyInviteToken } from '../invites.js'
@@ -11,6 +11,9 @@ export const habitsRouter = Router()
 
 habitsRouter.get('/', async (req, res, next) => {
   try {
+    // Reconcile missed streak resets when the app is opened. Render's free
+    // instance can sleep through the nightly cron, leaving stale streaks.
+    await resetMissedStreaks()
     const habits = await listHabitsForUser(req.telegramUser.id)
     res.json({ habits })
   } catch (err) {
