@@ -283,9 +283,9 @@ export async function resetMissedStreaks() {
   await pool.query(
     `UPDATE habit_member_stats hms
      SET streak_days = 0, updated_at = now()
-     FROM habits h
-     JOIN users u ON u.id = hms.user_id
+     FROM habits h, users u
      WHERE hms.habit_id = h.id
+       AND u.id = hms.user_id
        AND h.break_rule = 'personal'
        AND hms.streak_days > 0
        AND NOT EXISTS (
