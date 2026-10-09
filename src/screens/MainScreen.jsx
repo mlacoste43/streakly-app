@@ -130,7 +130,6 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
         <nav className="side-nav" aria-label={t('navChallenges')}>
           <button className={`nav-btn ${tab === 'solo' ? 'active' : ''}`} onClick={() => setTab('solo')} aria-current={tab === 'solo' ? 'page' : undefined}>🏁 <span>{t('navChallenges')}</span></button>
           <button className={`nav-btn ${tab === 'together' ? 'active' : ''}`} onClick={() => setTab('together')} aria-current={tab === 'together' ? 'page' : undefined}>👋 <span>{t('navTogether')}</span></button>
-          <button className="nav-btn" onClick={onOpenProfile}>👤 <span>{t('profile')}</span></button>
           <button className="nav-btn" onClick={onOpenSettings}>⚙️ <span>{t('settings')}</span></button>
         </nav>
         <div className="sidebar-note"><strong>{t('sidebarNoteTitle')}</strong><p>{t('sidebarNoteText')}</p></div>
