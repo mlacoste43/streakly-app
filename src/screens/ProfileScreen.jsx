@@ -66,12 +66,13 @@ export default function ProfileScreen({ onBack, user }) {
         <button className="back-btn" onClick={onBack} aria-label={t('back')}>
           <IconArrowLeft size={21} />
         </button>
-        <p>{t('profile')}</p>
       </div>
 
       <section className="profile-card">
         <div className="profile-avatar">
-          {(firstName[0] ?? 'Г').toUpperCase()}
+          {displayUser.photo_url
+            ? <img src={displayUser.photo_url} alt="" />
+            : (firstName[0] ?? 'Г').toUpperCase()}
         </div>
         <div className="profile-identity">
           <h1>{firstName}</h1>

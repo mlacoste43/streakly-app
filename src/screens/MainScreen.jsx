@@ -4,11 +4,13 @@ import StreakCard from '../components/StreakCard.jsx'
 import { api } from '../api.js'
 import { getCurrentWeekMonthKeys } from '../components/WeekCalendar.jsx'
 import { useSettings } from '../context/SettingsContext.jsx'
+import { getUser } from '../telegram.js'
 
 const ICONS = { run: IconRun, language: IconLanguage, book: IconBook, users: IconUsers }
 
 export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, onOpenSettings }) {
   const { t, language } = useSettings()
+  const telegramUser = getUser()
   const [habits, setHabits] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -140,7 +142,9 @@ export default function MainScreen({ onOpenHabit, onCreateHabit, onOpenProfile, 
           <div className="top-actions">
             <span className="pill" title={t('totalFireDays')}>🔥 {totalDays}</span>
             <button className="profile-icon-btn" type="button" onClick={onOpenProfile} aria-label={t('profile')} title={t('profile')}>
-              <IconUserCircle size={23} stroke={2} />
+              {telegramUser.photo_url
+                ? <img className="profile-icon-avatar" src={telegramUser.photo_url} alt="" />
+                : <IconUserCircle size={23} stroke={2} />}
             </button>
           </div>
         </header>
